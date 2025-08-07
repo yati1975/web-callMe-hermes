@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="version" content="1.0.4">
+  <script src="./js/crypto-js.min.js"></script>
+  <script src="./js/localforage.min.js"></script>
+  <script src="./WebSocket_lower.js"></script>  
+  <title>取號系統</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="./images/web32x32.png"> 
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: "Noto Sans TC", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      color: #000;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 85%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 1.5rem;
+      padding: 10px 0;
+      border-bottom: 1px solid #ccc;
+    }
+    .middle {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .middle .section {
+      flex: 1;
+      display: flex;
+      /*overflow-y: auto;*/
+      /* padding: 20px 0; */
+      border-bottom: 1px solid #ccc;
+      flex-direction: column;
+      justify-content: center;   
+    }
+
+    .title-row {
+      display: flex;
+      /* justify-content: space-between; */
+      justify-content: center;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .title-row h2 {
+      font-size: 2.2rem;
+      margin: 0;
+    }
+
+    .title-row span {
+      font-size: 1.8rem;
+      color: #555;
+    }
+
+    .info {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      margin-top: 20px;
+      gap: 10px;
+    }
+
+    .info div {
+      /* flex: 1 1 30%; */
+      text-align: center;
+    }
+
+    .label {
+      font-size: 1.2rem;
+      color: #666;
+    }
+
+    .value {
+      font-size: 2rem;
+      margin-top: 5px;
+      font-weight: bold;
+      padding: 10px 20px;
+    }
+
+    .ticket {
+      font-family: monospace;
+      width: 6ch;
+      text-align: center;
+      background-color: #bfbfbf;
+      color: white;
+      font-size: 2rem;
+      font-weight: bold;
+      padding: 10px 20px;
+      border-radius: 8px;
+      display: inline-block;
+      margin-top: 5px;
+    }
+
+    .button {
+      background-color: #FFB182;
+      color: black;
+      font-size: 3.2rem;
+      padding: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      /* margin-top: 5px; */
+      width: 45vw;
+      margin: 10px auto;
+      display: block;
+      max-width: 500px;
+    }
+    button:disabled {
+      background-color: #DFDFDF;
+      color: black;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .footerdisp{
+      margin-top: 15px;
+      max-width: 600px;
+      display: flex;
+      position: fixed;
+      /* padding: 1rem; */
+      bottom: env(safe-area-inset-bottom, 10px);
+      flex-direction: column;
+      align-items: center;
+      flex-wrap: nowrap;
+      width: 100vw;
+    }
+    .footer {
+      font-size: 1rem;
+      /* margin-top: 15px; */
+      color: #555;
+      position: unset;
+      left: 0;
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .footer ul {
+      padding-left: 20px;
+      margin: 0;
+    }
+    .footer li {
+      list-style-type: '|';
+      padding-inline-start: 1ch;
+    }
+    /* 頁腳樣式 */
+    .footerLogoVer{
+      padding: 0;
+      margin-left: -40px;
+      max-width: 600px;
+      display: flex  ;
+      width: 100%;
+      align-items: center;
+      flex-direction: column;
+    }
+    #ver{
+        font-size: 0.8rem;
+        
+    }
+    /* 背景遮罩 */
+    .overlay {
+      display: none; /* 初始隱藏 */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5); 
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+    }
+    .overlay.active {
+        display: flex;
+    }
+    /* 浮動視窗樣式 */
+    .modal {
+      background-color: white;
+      position: relative;
+      padding: 20px;
+      width: 100%;
+      max-width: 500px;
+      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      display: flex;
+      justify-content: center;
+      min-height: 50vh;
+      align-items: center;
+    }
+    .modal-box {
+      display: grid;
+      position: relative;
+      width: 100%;
+      /* max-width: 300px; */
+      padding: 10px;
+      /* border-bottom: 1px solid #eee; */
+      box-sizing: border-box;
+      color: black;
+      height: auto;
+      /* min-height: 140px; */
+      align-content: space-around;
+      font-size: 2rem;
+    }
+    
+    /* 浮動視窗外部的關閉按鈕 */
+    .close-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      z-index: 1;          
+    }
+    .close-btn img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.3s ease;             
+    } 
+    .close-btn:hover {
+      opacity: 0.7; /* hover 效果，變透明一點 */
+    }
+
+  @media (max-width: 480px) {
+    .container {
+      padding: 10px;
+    }
+
+    .title {
+      font-size: 1.8rem;
+      padding: 5px 0;
+    }
+
+    .title-row h2 {
+      font-size: 1.6rem;
+    }
+
+    .title-row span {
+      font-size: 1.0rem;
+    }
+
+    .info {
+      /* flex-direction: column; */
+      gap: 12px;
+    }
+
+    .label {
+      font-size: 1.2rem;
+    }
+
+    .value {
+      font-size: 1.6rem;
+      padding: 6px 12px;
+    }
+
+    .ticket {
+      font-size: 1.6rem;
+      padding: 6px 12px;
+    }
+
+    .button {
+      font-size: 2rem;
+      padding: 16px;
+      width: 90%;
+    }
+
+    .footerdisp {
+      /* position: static; */
+      margin-top: 20px;
+    }
+    .footer {
+      font-size: 0.85rem;
+    }
+    .footerLogoVer {
+      margin-left: 0;
+      align-items: center;
+    }
+    .footerLogoVer img {
+      width: 30px;
+      height: 30px;
+    }
+    #ver {
+      font-size: 0.7rem;
+    }
+  }
+  @media  (max-height: 768px){
+    .title {
+      font-size: 1.6rem;
+      padding: 5px 0;
+    }    
+    .info {
+      margin-top: 2vh;
+    }
+
+    .value {
+      margin-top: 1vh;
+      padding: 10px 10px;
+    }
+
+    .ticket {
+      width: 6ch;
+      padding: 10px 10px;
+      margin-top: 1vh;
+    }    
+    .button {
+      font-size: 2.2rem;
+      width: 40vw;
+    }
+    .footer {
+      font-size: 0.85rem;
+    }
+    .footerLogoVer img{
+      width: 30px;
+      height: 30px;
+
+    } 
+    #ver {
+      font-size: 0.8rem;
+      margin-top: -1vh;
+    }
+  }
+  @media  (max-height: 600px){
+    .title {
+      font-size: 1.5rem;
+      padding: 5px 0;
+    }    
+    .info {
+      margin: 0;
+
+    }
+    .title-row h2{
+      font-size: 1.2rem;
+    }
+    .label {
+      font-size: 1rem;
+      color: #666;
+    }    
+    .value {
+      margin-top: 0.5vh;
+      padding: 10px 10px;
+    }
+
+    .ticket {
+      width: 6ch;
+      padding: 10px 10px;
+      margin-top: 0.5vh;
+    }    
+    .button {
+      font-size: 1.5rem;
+      width: 80vw;
+      padding: 8px 16px;
+    }
+    .footer {
+      font-size: 0.8rem;
+      line-height: 1.1;
+    }
+    .footerLogoVer img{
+      width: 25px;
+      height: 25px;
+    } 
+    #ver {
+      font-size: 0.8rem;
+      margin-top: -1vh;
+    }
+  }
+
+  /* 橫版設計 */   
+  @media  (max-height: 568px)and (orientation: landscape){
+    .title {
+      font-size: 1.2rem;
+      padding: 5px 0;
+      border: none;
+    }    
+    .middle {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      justify-content: center;
+      gap: 1vw;
+    }
+    .middle .section {
+      border: 1px solid #ccc;
+    }  
+    .info {
+      margin-top: 2vh;
+      gap: 0;
+    }
+    .title-row h2{
+      font-size: 1.5rem;
+    }
+    .label {
+      font-size: 1rem;
+    }
+
+    .value {
+      font-size: 1.2rem;
+      margin-top: 1vh;
+      padding: 10px 10px;
+    }
+
+    .ticket {
+      width: 6ch;
+      font-size: 1.2rem;
+      padding: 10px 10px;
+      margin-top: 1vh;
+    }    
+    .button {
+      font-size: 2.2rem;
+      width: 40vw;
+    }
+    .footer {
+      font-size: 0.8rem;
+    }
+    .footerLogoVer img{
+      display: none;
+    }
+    #ver {
+      font-size: 0.7rem;
+      margin-top: -1vh;
+    }
+  /* 橫版設計 */   
+  @media  (max-height: 300px)and (orientation: landscape){
+    .title {
+      font-size: 1.2rem;
+      padding: 0;
+      border: none;
+    }    
+    .middle {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      justify-content: center;
+      gap: 1vw;
+    }
+    .middle .section {
+      border: 1px solid #ccc;
+      align-items: center;      
+    }  
+    .info {
+      margin: 0;
+      gap: 2vw;
+    }
+    .title-row h2{
+      font-size: 1.2rem;
+    }
+    .label {
+      font-size: 0.8rem;
+    }
+
+    .value {
+      font-size: 1rem;
+      margin-top: 0.5vh;
+      padding: 5px 5px;
+    }
+
+    .ticket {
+      width: 6ch;
+      font-size: 1rem;
+      margin-top: 0.5vh;
+      padding: 5px 5px;
+    }    
+    .button {
+      font-size: 1.1rem;
+      width: 40vw;
+      margin: 2px auto;
+      padding: 8px;
+    }
+    .footer {
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+    .footerLogoVer img{
+      display: none;
+    }
+    #ver {
+      font-size: 0.7rem;
+      margin-top: -1vh;
+    }    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">請點選取號 抽取號碼</div>
+    <div class="middle">
+      <!-- 鞋履區塊 -->
+      <div class="section">
+        <!-- <div class="title-row">
+          <h2>鞋履</h2>
+          <span>SHOES (A)</span>
+        </div> -->
+        <div class="title-row">
+          <h2 id="caller_name_A"></h2>
+        </div>
+        <button id="btn_A" class="button" onclick="getNumber(this,'A')">取號</button>  
+        <div class="info">
+          <div>
+            <div class="label">目前服務號碼</div>
+            <div id="curr_num_A" class="value">---</div>
+          </div>
+          <div>
+            <div class="label">等候組數</div>
+            <div id="waiting_A" class="value">---</div>
+          </div>
+          <div>
+            <div class="label">你的號碼</div>
+            <div id="get_num_A" class = "ticket">---</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 絲巾區塊 -->
+      <div class="section">
+        <!-- <div class="title-row">
+          <h2>絲巾</h2>
+          <span>SILK (B)</span>
+        </div> -->
+        <div class="title-row">
+          <h2 id="caller_name_B"></h2>
+        </div>
+        <button id="btn_B" class="button" onclick="getNumber(this,'B')">取號</button>
+        <div class="info">
+          <div>
+            <div class="label">目前服務號碼</div>
+            <div id="curr_num_B" class="value">---</div>
+          </div>
+          <div>
+            <div class="label">等候組數</div>
+            <div id="waiting_B" class="value">---</div>
+          </div>
+          <div>
+            <div class="label">你的號碼</div>
+            <div id="get_num_B" class = "ticket">---</div>
+          </div>
+        </div>
+      </div>     
+    </div>
+
+    <!-- 備註 -->
+    <div class="footerdisp">
+      <div class="footer">
+        <ul>
+          <li>一組號碼至多兩位貴賓, 每組購物時間為10分鐘</li>
+          <li>一次抽取單區號碼，10分鐘後方可取下一區號碼</li>
+          <li>過號請重新取號或於該區現場等候，由同仁安排入場</li>
+        </ul>
+      </div>
+      <div class="footerLogoVer">
+        <img src="images/logo_mini.png">
+        <div id="ver">ver.0.0.1</div>
+      </div>  
+    </div>
+  </div>
+  <!-- 浮動視窗與背景遮罩 -->
+  <div class="overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="close-btn" onclick="closeModal()"> <img src="./images/close.png"> </div>
+      <div class = "modal-box">
+        <p id="mTitle"></p>
+        <p>因人潮眾多 暫停取號</p>
+        <p>請稍後重試</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    // let initData={
+    //     caller_id: null,								// 叫號機 id
+    //     hardware: null,									// 有無實體取號機 (true/fasle).
+    //     caller_name: null, 
+    //     curr_num: null,                 // 目前號碼
+    //     support_get_num: null,          // 支援取號 (true/false)
+    //     last_get_num: null,             // 最後取號 (若不支援取號服務，此欄為"")
+    //     get_num_switch: null,           // 取號開關 ("on"/"off") (若不支援取號服務，此欄為"")
+    //     get_num_item_type:null,         // 取號項目型別 (若不支援"選擇取號項目", 此欄為"")
+    //     get_num_item_data: null,		    //(取號項目號碼資料)(用來取代 get_num_item_queue)
+    //     get_num_item_names: null, 	    // 取號項目名稱
+    //     get_num_item_queue: null,       // 取號項目號碼佇列
+    //     get_num_notes: null,            // 取號需知 (若不顯示取號需知，此欄設為"")(若不支援取號服務，此欄為"")
+    //     support_reserve_num: null,      // 支援到號保留 (true/false)(若不支援取號服務，此欄為false)
+    //     reserve_time_limit: null, 			//(到號保留期限)
+    //     reset_time:null,								//(重置時間)
+    //     uuid: null // 封包識別碼"support_get_num"(支援取號)
+    // };   
+    let wsA, wsB;
+    let userID = generateUserId();
+    let initData={};
+    let userData={
+      clientIdA:{
+        getnum:null,
+        timestamp:null
+      },
+      clientIdB:{
+        getnum:null,
+        timestamp:null
+      }
+    };
+    let nowUserGetNumTime=null;
+    const defTime = 600000;
+    //const defTime = 1000*60;
+    const versionMeta = document.querySelector('meta[name="version"]');
+    const version = versionMeta ? versionMeta.getAttribute('content') : '未知版本';
+    document.getElementById('ver').innerText = "ver."+version;
+
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientIdA = urlParams.get('userA') || 'clientA';
+    const clientIdB = urlParams.get('userB') || 'clientB';
+    
+    function getDBata () {
+        try {
+            const db = localforage.createInstance({
+                name: 'callMe2',
+                storeName: 'data'
+            });
+            db.getItem('UserID').then((data)=>{
+                if(data){
+                    userID=data;
+                }else{
+                    userID = generateUserId();  //產生玩家ID.
+                }
+            });
+            Promise.all([db.getItem(clientIdA), db.getItem(clientIdB)]).then((data)=>{
+              let dataA=data[0];
+              let dataB=data[1];
+              if(dataA){
+                //console.log(JSON.stringify(dataA));
+                if((dataA.timestamp !== undefined) &&(dataA.timestamp !== null)){
+                    userData.clientIdA.timestamp = dataA.timestamp;
+                }
+                if((dataA.getnum !== undefined) &&(dataA.getnum !== null)){            
+                    userData.clientIdA.getnum = dataA.getnum;
+                }
+              }
+              if(dataB){
+                //console.log(JSON.stringify(dataB));
+                if((dataB.timestamp !== undefined) &&(dataB.timestamp !== null)){
+                    userData.clientIdB.timestamp = dataB.timestamp;
+                }
+                if((dataB.getnum !== undefined) &&(dataB.getnum !== null)){            
+                    userData.clientIdB.getnum = dataB.getnum;
+                }
+              }
+
+              let tenM = defTime;
+              if(userData.clientIdA.timestamp !== null){
+                nowUserGetNumTime = userData.clientIdA.timestamp ;
+              }
+              if(userData.clientIdB.timestamp !== null){
+                if(userData.clientIdB.timestamp > nowUserGetNumTime){
+                  nowUserGetNumTime = userData.clientIdB.timestamp;
+                }
+              }
+              if(nowUserGetNumTime !== null){
+                  //檢查時間戳記, 顯示是否重新取號.
+                  let nt = new Date();
+                  let less = nt.getTime() - nowUserGetNumTime.getTime();
+                  //檢查是否跨日且超過凌晨4點.
+                  console.log('less:'+less);
+                  if(isCrossDayAndAfter4AM(nowUserGetNumTime, nt) === true){
+                      console.log('isCrossDayAndAfter4AM==true');
+                      clearData();
+                  }
+              }
+              console.log(JSON.stringify(userData));
+            });
+
+        } catch (error) {
+            console.error(error);
+        }
+    }
+  
+
+    async function clearData() {
+        try {
+            const db = localforage.createInstance({
+                name: 'callMe2',
+                storeName: 'data'
+            });        
+            let getNumData = {
+                timestamp: null,
+                getnum:null
+            };
+            db.setItem(clientIdA, getNumData);
+            db.setItem(clientIdB, getNumData);
+            console.log('該資料已清除');
+        } catch (err) {
+            console.error('清除資料失敗:', err);
+        }
+        nowUserGetNumTime = null;
+        nowUserGetNumValue = null;
+        nowWaitTimeValue = 0;
+    }
+    function isCrossDayAndAfter4AM(startTime, now) {
+        // 判斷是否跨日
+        const isCrossDay = now.toDateString() !== startTime.toDateString();
+        // 判斷是否超過凌晨4點
+        const fourAM = new Date();
+        fourAM.setHours(4, 0, 0, 0); // 設定為當天的凌晨4點
+        const isAfter4AM = now.getTime() >= fourAM.getTime();
+        return isCrossDay && isAfter4AM;
+    }
+
+
+
+    window.onload = function () {
+      wsA = createWebSocket(clientIdA, 'A');
+      wsB = createWebSocket(clientIdB, 'B');
+      getDBata();
+    };
+
+    function createWebSocket(callerId, label) {
+      const ws = new window.MyWebSocketLow('wss://cmb-caller-frontend-410240967190.asia-east1.run.app/');
+      ws.id = callerId;
+
+      ws.onopen = () => {
+        console.log(`[${label}] WebSocket 開啟`);
+        wsSendLogin(ws, callerId, 'user_get_num');
+        /*wsSendLogin(ws, callerId, password);*/
+        //sendGetNum(ws, callerId, label);
+      };
+
+      // ws.onmessage = (data) => {
+      //   //let data = event.data;
+      //   console.log('[WebSocket 收到回傳資料]', data);
+
+      //   try {
+      //     //data = JSON.parse(data);
+      //     handleWebSocketMessage(data, label);
+      //   } catch (e) {
+      //     console.warn(`[${label}] 非 JSON 格式：`, data);
+      //   }
+      // };
+        ws.onmessage = (data) => {
+          
+          console.log('[WebSocket 收到回傳資料]', data);
+
+				  let len = data.length;
+				  if(len > 1){
+            const cmd = data[data.length - 1];
+            if (cmd && cmd.toLowerCase() === 'auth') {
+                const state = data[0];
+                if (state === 'OK') {
+                    console.log('驗證通過');
+                    agentName = data[1];
+                } else {
+                    const errorCode = data[1];
+                    if (errorCode === '001' || errorCode === '002') {
+                        console.log('驗證失敗');
+                    }
+                }
+            }else if(cmd === 'update'){
+              handleWebSocketMessageCSV(data, label);
+            }
+          }else{
+            handleWebSocketMessage(data, label);
+            // //json.
+            // if(data.action ==="login"){
+            //   if(data.result==="OK"){
+            //     console.log('驗證通過');
+            //     // 叫號機名稱
+            //     if(data.caller_name!== undefined){
+            //       agentName = data.caller_name;
+            //       initData.caller_name = data.caller_name;
+            //       storename=agentName;
+            //       if(agentName.indexOf(';;') !== -1){
+            //         let str2=agentName.split(';;');
+            //         storename = str2[0];
+            //         callername = str2[1];
+            //       }                   
+            //       showStorename();
+            //     }
+            //     // 目前號碼
+            //     if(data.curr_num!== undefined){
+            //       nowValue = data.curr_num;
+            //       initData.curr_num = data.curr_num;
+            //       showNowNumber();
+            //     }
+            //     // 支援取號 (true/false)
+            //     if(data.support_get_num!== undefined){
+            //       initData.support_get_num = data.support_get_num;
+            //     }
+            //     // 最後取號 (若不支援取號服務，此欄為"")
+            //     if(data.last_get_num!== undefined){
+            //       initData.last_get_num = data.last_get_num;
+            //     }
+            //     // 取號開關 ("on"/"off") (若不支援取號服務，此欄為"")
+            //     if(data.get_num_switch!== undefined){
+            //       initData.get_num_switch = data.get_num_switch;
+            //     }
+            //     // 取號項目型別 (若不支援"選擇取號項目", 此欄為"")
+            //     if(data.get_num_item_type!== undefined){
+            //       initData.get_num_item_type = data.get_num_item_type;
+            //     }
+            //     // 取號項目名稱
+            //     if(data.get_num_item_names!== undefined){
+            //       initData.get_num_item_names = data.get_num_item_names;
+            //       if(initData.get_num_item_names !== ""){
+            //         let sectionGroup=[];
+            //         clearButtons();
+            //         // for (const key in initData.get_num_item_names){
+            //         for (let key=0;key<initData.get_num_item_names.length;key++){                        
+            //             sectionGroup.push(initData.get_num_item_names[key]);
+                        
+            //             addSection(sectionGroup[key], key);
+            //         }
+            //       }
+            //     }
+            //     // 取號項目號碼佇列
+            //     if(data.get_num_item_queue!== undefined){
+            //       initData.get_num_item_queue = data.get_num_item_queue;
+            //     }
+            //     // 封包識別碼"support_get_num"(支援取號)
+            //     if(data.uuid!== undefined){
+            //       initData.uuid = data.uuid;
+            //     }
+            //   } else {
+            //     const errorCode = data[1];
+            //     if (errorCode === '001' || errorCode === '002') {
+            //       console.log('驗證失敗');
+            //     }
+            //   }
+            //}	            
+          }
+        };
+      ws.onclose = () => {
+        console.warn(`[${label}] WebSocket 關閉，嘗試重連`);
+        setTimeout(() => createWebSocket(callerId, label), 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error(`[${label}] WebSocket 錯誤:`, err);
+      };
+
+      return ws;
+    }
+
+    function wsSendLogin(ws, username, password) {
+      if (!ws) return;
+      //const msg = `${username},AUTH,${password}`;
+      const msg = `{"action": "login","vendor_id": "tawe","caller_id": "${username}","password":"${password}","uuid": ""}`;  
+      ws.send(msg);
+    }
+
+    function sendGetNum(ws, callerId, label, itemID) {
+      const msg = {
+        action: "user_get_num",
+        vendor_id: "tawe",
+        caller_id: callerId,
+        user_id: userID,
+        get_num_item_id: itemID,
+        for_customer:true,
+        uuid: ""
+      };
+      ws.send(JSON.stringify(msg));
+      console.log(`[${label}] 發送 user_get_num 請求`);
+    }
+
+    function handleWebSocketMessageCSV(data, label) {
+      const cmd = data[data.length-1];
+      if((data[0]==='OK')&&(cmd === "update")){
+        updateNumUI(data[2],label);
+      }
+    }
+    function handleWebSocketMessage(data, label) {
+      if (data.result === 'OK' && data.action === 'login') {
+        initUI(data,label);
+      }  
+      if (data.result === 'OK' && data.action === 'user_get_num' && data.user_id === userID) {
+        updateUI(data, label);
+      }
+      if(data.action === 'get_num_status'){
+        if(data.switch === 'on' ){
+          initData[label].support_get_num = true;
+        }
+        if(data.switch === 'off' ){
+          initData[label].support_get_num = false;
+        }
+
+      }
+      if(data.action === 'get_num_switch'){
+        if(data.switch === 'on' || (data.switch === 'off')){
+          initData[label].get_num_switch = data.switch;
+        }
+      }
+      // if(data.result === 'OK' && data.action === 'user_get_num'){
+
+      // }
+    }
+    function initUI(data, label){
+      console.log(data);
+      initData[label]=data;
+      // if(label === 'A'){
+      //   initDataA = data;
+      // }else if(label === 'B'){
+      //   initDataB = data;
+      // }
+
+      const caller_name = document.getElementById(`caller_name_${label}`);
+      const curr_num = document.getElementById(`curr_num_${label}`);
+      const waiting = document.getElementById(`waiting_${label}`);
+      const btnGetNum = document.getElementById(`btn_${label}`);
+      const get_num = document.getElementById(`get_num_${label}`);
+
+      let storename = data.caller_name || "";
+      const nowCurrNum = Number(data.curr_num || 0);
+      const nowLastGetNum = Number(data.last_get_num || 0);
+      let nowGetNum = 0;
+      let callername = null;
+      if(data.caller_name.indexOf(';;') !== -1){
+          let str2=data.caller_name.split(';;');
+          storename = str2[0];
+          callername = str2[1];
+      }         
+      if(callername !== null){
+        caller_name.textContent = storename+' ['+callername+']';  
+      }else{
+        caller_name.textContent = storename;
+      }
+      
+      curr_num.textContent = nowCurrNum;
+
+      // if(((data.get_num_item_type !== null)&&(data.get_num_item_type!=="")) &&
+      //   ((data.get_num_item_data !== null)&&(data.get_num_item_data!==""))){
+      //   //計算目前等候組數.
+      //   let cnt = 0;
+      //   for(const key in data.get_num_item_data){
+      //       let obj = data.get_num_item_data[key];
+      //       if(obj.state === "waiting"){
+      //           cnt ++;
+      //       }
+      //   }
+      //   waiting.textContent = cnt;
+      // }else{
+      //   let less = nowLastGetNum - nowCurrNum;
+      //   waiting.textContent = less;
+      // }
+      // get_num.style.display="none";
+      // btnGetNum.style.display = "unset";
+
+      btnGetNum.disabled = false;
+      if(data.support_get_num === false){
+        btnGetNum.disabled = true;
+      }
+      // if(data.get_num_switch === "off"){
+      //   btnGetNum.disabled = true;
+      // }
+      if((userData[`clientId${label}`]) && (userData[`clientId${label}`].getnum!== null)){
+        get_num.textContent = userData[`clientId${label}`].getnum;
+        let wless = userData[`clientId${label}`].getnum - nowCurrNum;
+        if(wless <= 0){
+          wless = 0;
+        }
+        waiting.textContent = wless;
+        if(wless > 0){
+          btnGetNum.textContent = '已取號';
+          btnGetNum.disabled = true;
+          if(!btnGetNum.classList.contains('disabled')){
+            btnGetNum.classList.add('disable');
+          }
+        }
+      }
+      
+      //debugTxt.textContent = new Date().toLocaleTimeString();
+    }
+    function updateUI(data, label) {
+      const btn = document.getElementById(`btn_${label}`);
+      const displayNow = document.getElementById(`get_num_${label}`);
+      const displayLess = document.getElementById(`waiting_${label}`);
+      //const debugTxt = document.getElementById(`debugTxt_${label}`);
+
+      const nowUserGetNumValue = Number(data.get_num || 0);
+      // const waitTimeAvg = Number(data.wait_time_avg || 0);
+      // const waitMin = Math.max(1, Math.floor(waitTimeAvg / 60));
+
+      btn.textContent = "已取號";
+      if(!btn.classList.contains('disabled')){
+        btn.classList.add('disabled');
+      }
+      //btn.style.backgroundColor = '#DFDFDF';
+      btn.disabled =true;
+      displayNow.textContent = nowUserGetNumValue;
+      let nowCurrNum = Number(initData[label].curr_num);
+      let waitN = nowUserGetNumValue - nowCurrNum;
+      displayLess.textContent = waitN;
+
+      nowUserGetNumTime = new Date();
+      let clientId; 
+      if(label === "A"){
+        clientId = clientIdA;
+      }else if(label === "B"){
+        clientId = clientIdB;
+      }else{
+        console.error('undefine label');
+      }
+      userData[`clientId${label}`].getnum = nowUserGetNumValue;  
+      userData[`clientId${label}`].timestamp = nowUserGetNumTime;  
+      try {
+        const db = localforage.createInstance({
+          name: 'callMe2',
+          storeName: 'data'
+        });
+        db.setItem('UserID',userID);
+        let getNumData = {
+            timestamp: nowUserGetNumTime,
+            getnum:nowUserGetNumValue
+        };
+        db.setItem(clientId, getNumData);
+      } catch (error) {
+        console.error(error);
+      }
+      let btnOther;
+      if(label === 'A'){
+        btnOther = document.getElementById('btn_B');
+      }else{
+        btnOther = document.getElementById('btn_A');
+      }
+      if(!btnOther.classList.contains('disabled')){
+        btnOther.disabled = true;
+        btnOther.classList.add('disabled');
+      }
+      
+      startEvent(nowUserGetNumTime);
+      // displayLess.textContent = waitMin;
+      // displayNow.style.display = "inline-block";
+      //debugTxt.textContent = new Date().toLocaleTimeString();
+    }
+    function updateNumUI(num, label){
+      const curr_num = document.getElementById(`curr_num_${label}`);
+      const waiting = document.getElementById(`waiting_${label}`);
+      const nowCurrNum = Number(num || 0);
+      curr_num.textContent = nowCurrNum;
+
+      initData[label].curr_num = nowCurrNum;
+      console.log(`clientId${label}`+ ' '+ userData[`clientId${label}`].getnum);
+      if(userData[`clientId${label}`].getnum !== null){
+        const displayLess = document.getElementById(`waiting_${label}`);
+        let less = userData[`clientId${label}`].getnum - nowCurrNum;
+        if(less < 0){
+          less = 0;
+        }
+        displayLess.textContent = less;
+      }
+      if(nowCurrNum >= userData[`clientId${label}`].getnum){
+        let btn = document.getElementById(`btn_${label}`);
+        if(btn.disabled === true){
+          btn.disabled = false;
+          btn.textContent = '取號';
+          if(btn.classList.contains('disabled')){
+            btn.classList.remove("disabled");
+          }
+        }
+      }
+    }
+
+    function generateUserId() {
+      return 'xxxxxxxxyxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0;
+        return r.toString(16);
+      }).toUpperCase();
+    }
+    function getNumber(btn,btnLabel){
+      if(btn.disabled === true){
+        return;
+      }
+      
+      if(initData[btnLabel].support_get_num === false || initData[btnLabel].get_num_switch === 'off'){
+        popMsg(btnLabel);
+        return;
+      }
+      if(btnLabel === "A"){
+        sendGetNum(wsA,clientIdA,btnLabel,"0");
+        //sentMessageUserGetNum(wsA,clientIdA,userID);
+      }else{
+        sendGetNum(wsB,clientIdB,btnLabel,"0");
+        //sentMessageUserGetNum(wsB,clientIdB,userID);
+      }
+    }
+    // function sentMessageUserGetNum(ws, clientId,itemId){
+    //     console.log('sentMessageUserGetNum');
+    //     if(clientId!==null){
+    //         if (ws && ws.readyState === WebSocket.OPEN) {
+    //             let message = `{"action": "user_get_num","vendor_id": "tawe","caller_id": "${clientId}","user_id": "${userID}","get_num_item_id":"${itemId}","for_customer":true, "uuid": ""}`;  
+    //             console.log('sentMessageUserGetNum:'+message);
+    //             ws.send(message);
+    //         }else{
+    //             console.log('已斷線');
+    //         }
+    //     }
+    // }
+
+    //-----------------------------------------------------------------------
+    // 啟動事件：儲存時間
+    function startEvent(now) {
+        console.log("事件啟動時間：" + now.toLocaleTimeString());
+        checkIfPassed10Minutes(now);
+    }
+    // 檢查是否已經超過10分鐘
+    function checkIfPassed10Minutes(eventTime) {
+        const interval = setInterval(() => {
+        const now = new Date();
+        const elapsed = now - eventTime;
+
+        if (elapsed >= defTime) {            
+            clearInterval(interval);
+            proceedToNextStep();
+        }
+        }, 10000); // 每10秒檢查一次
+    }
+    // 超過10分鐘後要執行的動作
+    function proceedToNextStep() {
+        console.log("已超過10分鐘，執行下一步！");
+        resetButtonMode();
+    }
+    function resetButtonMode(){
+        const btnGetNumA = document.getElementById(`btn_A`);
+        const btnGetNumB = document.getElementById(`btn_B`);
+        if(btnGetNumA.textContent === '取號'){
+          if(btnGetNumA.classList.contains('disabled')){
+            btnGetNumA.disabled = false;
+            btnGetNumA.classList.remove("disabled");
+          }
+        }
+        if(btnGetNumB.textContent === '取號'){
+          if(btnGetNumB.classList.contains('disabled')){
+            btnGetNumB.disabled = false;
+            btnGetNumB.classList.remove("disabled");
+          }
+        }
+    }
+    function popMsg(label){
+      let modalbox = document.getElementById('modalOverlay');
+      let mTitle = document.getElementById('mTitle');
+      const caller_name = document.getElementById(`caller_name_${label}`);
+      mTitle.textContent = caller_name.textContent;
+      if(!modalbox.classList.contains('active')){
+        modalbox.classList.add('active');
+      }
+    }
+    function closeModal(){
+      let modalbox = document.getElementById('modalOverlay');
+      if(modalbox.classList.contains('active')){
+        modalbox.classList.remove('active');
+      }
+    }
+
+
+  </script>
+</body>
+</html>

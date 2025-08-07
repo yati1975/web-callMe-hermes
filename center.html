@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="version" content="1.0.6">
+  <script src="./js/crypto-js.min.js"></script>
+  <script src="./js/localforage.min.js"></script>
+  <script src="./WebSocket_lower.js"></script>  
+  <title>叫號系統</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="./images/web32x32.png"> 
+  <style>
+		body {
+			margin: 0;
+			border: 0;
+			padding: 0;
+			font-family: Arial, sans-serif;
+			background-color: #f2f2f2;
+			color: #000000;
+			overflow-x: hidden;
+			overflow-y: hidden;
+
+			/* height: 100vh;
+			max-height: -webkit-fill-available; */
+			/* height: calc(var(--vh, 1vh) * 100); */
+
+			display: flex; /* 將 body 設置為 Flex 容器 */
+    		flex-direction: column; /* 讓子元素垂直排列 */
+			min-height: 100vh; /* 確保 body 至少佔滿視窗高度，dvh 處理行動裝置更好 */
+
+			/* 關閉點擊時的黑色閃爍 */
+			-webkit-tap-highlight-color: transparent;
+
+			/* 禁用文字選取 */
+			-webkit-user-select: none; /* Safari, Chrome, Edge (舊版本) */
+			-moz-user-select: none;    /* Firefox */
+			-ms-user-select: none;     /* Internet Explorer 10+ */
+			user-select: none;
+		}
+
+		.container {
+			display: flex;
+			justify-content: center;
+			flex-grow: 1;
+			height: 45vh;
+			overflow-y: hidden;
+		}
+
+		.background {
+			width: 100%;
+			background-color: #f2f2f2;
+			text-align: center;
+			padding: 2vh;
+			box-sizing: border-box;
+		}
+
+		.content,
+		.content2 {
+			list-style-type: none;
+			padding-left: 0;
+			margin: 0;
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			min-height: 5.5vh;
+			overflow-y: hidden;
+		}
+
+		.content {
+			/* max-height: 16.4vh; */
+			max-height: 100%;
+			justify-content: flex-start;
+		}
+
+		.content2 {
+			/* max-height: 10.9vh; */
+			max-height: 100%;
+		}
+
+		ol li {
+			display: inline-block;
+			padding: 0.5vh 1vh;
+    		border-radius: 1vh;
+			margin: 1vw 1vw;
+			color: rgb(0, 0, 0);
+			font-size: 2.8vh;
+			width: 6.8vh;
+
+			max-height: 3.3vh;
+			opacity: 1;
+			overflow: hidden;
+			transition: opacity 0.5s ease-in-out, max-height 0.5s ease-in-out;
+		}
+
+		.content li {
+			border: 1px solid #FFB182;
+			background: #FFB182;
+		}
+
+		/* 新增項目時的初始狀態 */
+		ol li.new-item-entering {
+			opacity: 0;
+			max-height: 0;
+		}
+
+		/* 移除項目時的動畫效果 */
+		ol li.removing-item {
+			opacity: 0;
+			max-height: 0;
+			margin: 0; /* 移除時也清除 margin，讓它更平滑地消失 */
+			padding: 0; /* 移除時也清除 padding */
+			transition: opacity 0.5s ease-in-out, max-height 0.5s ease-in-out, margin 0.5s ease-in-out, padding 0.5s ease-in-out;
+		}
+
+		.content2 li {
+			border: 1px solid rgb(0, 0, 0);
+			color: rgb(0, 0, 0);
+		}
+
+		h1 {
+			font-family: monospace, serif;
+			font-size: 3.5vh;
+			line-height: 5vh;
+			margin: 1vh 0;
+		}
+
+		h2 {
+			font-size: 2.2vh;
+			width: 100%;
+			text-align: left;
+			margin: 0.5vh 0 0.5vh 1vh;
+			letter-spacing: 1vw;
+			font-weight: unset;
+		}
+
+		footer {
+			/* padding: 1dvh 0; */
+			margin-top: auto;
+			width: 100%;
+			height: 10vh;
+		}
+
+		footer font {
+			color: #000000;
+			font-size: 1.4vh;
+			width: 100%;
+			box-sizing: border-box;
+			line-height: 2.3vh;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			text-align: left;
+			letter-spacing: 0.3vw;
+			height: inherit;
+		}
+
+
+		hr {
+			border: none;
+    		border-top: 0.1vh solid #ccc;
+		}
+
+		footer hr,
+		.group-hr {
+			width: 100%;
+		}
+
+		footer hr {
+			margin: 0;
+		}
+
+		#dynamic-content-area {
+			height: 90vh;
+		}
+
+		#ver {
+			right: 0.5vw;
+			font-size: 1vw;
+			color: rgba(0, 0, 0, 0.6);
+    	position: absolute;
+		}
+		/* #ver {
+			font-size: 0.9vh;
+    	right: 5px;
+			top: 1vh;
+			color: rgba(0, 0, 0, 0.6);
+    	position: absolute;
+    }  */
+		@supports (height: 100dvh) {
+				body {
+				min-height: 100dvh;
+			}
+
+			.container {
+				height: 45dvh;
+			}
+
+			.background {
+				padding: 2dvh;
+			}
+
+			.content,
+			.content2 {
+				min-height: 5.5dvh;
+			}
+
+			.content {
+				/* max-height: 16.4dvh; */
+			}
+
+			.content2 {
+				/* max-height: 10.9dvh; */
+			}
+
+			ol li {
+				padding: 0.5dvh 1dvh;
+				border-radius: 1dvh;
+				font-size: 2.8dvh;
+				width: 6.8dvh;
+
+				max-height: 3.3dvh;
+			}
+
+			h1 {
+				font-size: 3.5dvh;
+				line-height: 5dvh;
+				margin: 1dvh 0;
+			}
+
+			h2 {
+				font-size: 2.2dvh;
+				margin: 0.5dvh 0 0.5dvh 1dvh;
+			}
+
+			footer {
+				/* padding: 1dvh 0; */
+				height: 10dvh;
+			}
+
+			footer font {
+				font-size: 1.4dvh;
+				line-height: 2.3dvh;
+			}
+
+			#dynamic-content-area {
+				height: 90dvh;
+			}
+			#ver {
+				right: 0.5vw;
+				font-size: 1vh;
+				top: 1vh;
+			}
+		}
+
+		@media (orientation: landscape) {
+			body {
+				/* overflow-y: auto; */
+			}
+
+			.container {
+				/* height: auto; */
+				width: 50%;
+				height: 84vh;
+			}
+
+			.background {
+				width: 100%;
+				padding: 2vh;
+			}
+
+			.content,
+			.content2 {
+				min-height: 5.5vw;
+			}
+
+			.content {
+				/* max-height: 16.4vw; */
+			}
+
+			.content2 {
+				/* max-height: 10.9vw; */
+			}
+
+			ol li {
+				padding: 0.5vw 1vw;
+				border-radius: 1vw;
+				margin: 1vh 1vh;
+				font-size: 2.8vw;
+				width: 5.8vw;
+
+				max-height: 3.3vw;
+			}
+
+			h1 {
+				font-size: 3.5vw;
+				line-height: 5vh;
+				margin: 2vw 0;
+			}
+
+			h2 {
+				font-size: 2.2vw;
+				margin: 0.5vh 0 0.5vh 1vh;
+				letter-spacing: 1vw;
+			}
+
+			footer {
+				/* padding: 1dvh 0; */
+				width: 100%;
+				height: 15dvh;
+				/* height: auto; */
+			}
+
+			footer font {
+				font-size: 1.4vw;
+				line-height: 2vw;
+				letter-spacing: 1vh;
+			}
+
+			.group-hr {
+				width: 1px;
+
+				border: none;
+    			border-right: 0.1vh solid #ccc;
+			}
+
+			#dynamic-content-area {
+				/* height: auto; */
+				display: flex;
+				height: 85dvh;
+			}
+		}
+
+
+	 </style>
+</head>
+<body>
+	<div id="dynamic-content-area"></div>
+	<template id="section-template">
+		<div class="container">
+			<div class="background">
+				<h1 id="caller_name_A"></h1>
+				<h2>請下列號碼入場</h2>
+				<hr style="border:none; border-top: 1px solid #ccc;"></hr>
+				<ol class="content">
+				</ol>
+				<h2>即將入場</h2>
+				<hr style="border:none; border-top: 1px solid #ccc;"></hr>
+				<ol class="content2">
+				</ol>
+			</div>
+		</div>
+		<hr class="group-hr"></hr>
+	</template>	
+	<footer>
+		<hr></hr>
+		<font>
+			| 每組號碼最多可供兩位貴賓一同使用，每次入場時間為 10 分鐘<br>
+			| 一次限抽一區號碼，取號後請間隔 10 分鐘再抽另一區.<br>
+			| 若過號，請於現場過號排隊區等候，後續將由同仁協助安排入場
+		</font>
+		<div id="ver">ver.0.0.1</div>
+	</footer>  
+  <script>
+    // let initData={
+    //     caller_id: null,								// 叫號機 id
+    //     hardware: null,									// 有無實體取號機 (true/fasle).
+    //     caller_name: null, 
+    //     curr_num: null,                 // 目前號碼
+    //     support_get_num: null,          // 支援取號 (true/false)
+    //     last_get_num: null,             // 最後取號 (若不支援取號服務，此欄為"")
+    //     get_num_switch: null,           // 取號開關 ("on"/"off") (若不支援取號服務，此欄為"")
+    //     get_num_item_type:null,         // 取號項目型別 (若不支援"選擇取號項目", 此欄為"")
+    //     get_num_item_data: null,		    //(取號項目號碼資料)(用來取代 get_num_item_queue)
+    //     get_num_item_names: null, 	    // 取號項目名稱
+    //     get_num_item_queue: null,       // 取號項目號碼佇列
+    //     get_num_notes: null,            // 取號需知 (若不顯示取號需知，此欄設為"")(若不支援取號服務，此欄為"")
+    //     support_reserve_num: null,      // 支援到號保留 (true/false)(若不支援取號服務，此欄為false)
+    //     reserve_time_limit: null, 			//(到號保留期限)
+    //     reset_time:null,								//(重置時間)
+    //     uuid: null // 封包識別碼"support_get_num"(支援取號)
+    // };   
+    let wsA, wsB;
+		const maxUpdateQueue = 6;
+		const maxCurrentQueue = 15;
+    const maxFlapoutTime = 30000;	//30sec.
+		const maxSection = 2;
+    const defTime = 600000;
+		const reflashTime = 30000; //30sec.
+
+    let initData={};
+    let userData={
+      A:{
+				txtUsername:null,
+				base64Encoded:null,
+        currQueue:[],
+        updateQueue:[]
+      },
+      B:{
+				txtUsername:null,
+				base64Encoded:null,
+        currQueue:[],
+        updateQueue:[]
+      }
+    };
+    let nowUserGetNumTime=null;
+		let countSection=0;
+    //const defTime = 1000*60;
+    const versionMeta = document.querySelector('meta[name="version"]');
+    const version = versionMeta ? versionMeta.getAttribute('content') : '未知版本';
+    document.getElementById('ver').innerText = "ver."+version;
+
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientIdA = urlParams.get('userA') || 'clientA';
+    const clientIdB = urlParams.get('userB') || 'clientB';
+
+    window.onload = function () {
+      wsA = createWebSocket(clientIdA, 'A');
+      wsB = createWebSocket(clientIdB, 'B');
+    };
+    function createWebSocket(callerId, label) {
+      const ws = new window.MyWebSocketLow('wss://cmb-caller-frontend-410240967190.asia-east1.run.app/');
+      ws.id = callerId;
+			console.log('ws.id:'+ws.id);
+			const txtPassword = '88888888';
+			let wstimer = null;
+      
+      ws.onopen = () => {
+        console.log(`[${label}] WebSocket 開啟`);
+        // 1. 計算 SHA-256 雜湊值
+			  const sha256Hash = CryptoJS.SHA256(txtPassword);
+			  // 2. 將雜湊值轉換為 Base64 編碼
+			  let base64Encoded = sha256Hash.toString(CryptoJS.enc.Base64);
+				userData[label].textContent = callerId;
+				userData[label].base64Encoded = base64Encoded;
+        wsSendLogin(ws, callerId, base64Encoded);
+      };
+
+        ws.onmessage = (data) => {
+          
+          console.log('[WebSocket 收到回傳資料]', data);
+
+				  let len = data.length;
+				  if(len > 1){
+            const cmd = data[data.length - 1];
+            if (cmd && cmd.toLowerCase() === 'auth') {
+                const state = data[0];
+                if (state === 'OK') {
+                    console.log('驗證通過');
+                    agentName = data[1];
+                } else {
+                    const errorCode = data[1];
+                    if (errorCode === '001' || errorCode === '002') {
+                        console.log('驗證失敗');
+                    }
+                }
+            }else if(cmd === 'update'){
+              handleWebSocketMessageCSV(data, label);
+							if(wstimer!== null){
+									clearTimeout(wstimer);
+									wstimer = null;
+							}							
+							wstimer = setTimeout(() => {
+								console.log(callerId+' '+ws);
+								sentMessageGetNumInfo(ws,callerId);
+							}, reflashTime);
+            }
+          }else{
+						if (data.result === 'OK' && data.action === 'login') {
+							//ws.id = userData[label].txtUsername;
+							try {
+								const db = localforage.createInstance({
+									name: 'callMe',
+									storeName: 'data'
+								});
+								let getNumData = {
+		              CallerID: userData[label].txtUsername,
+									Password: userData[label].base64Encoded
+        		    };
+								db.setItem('user${label}', getNumData);
+							} catch (error) {
+								console.error(error);
+							}
+						}
+
+            handleWebSocketMessage(data, label);
+          }
+        };
+      ws.onclose = () => {
+        console.warn(`[${label}] WebSocket 關閉，嘗試重連`);
+        setTimeout(() => createWebSocket(callerId, label), 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error(`[${label}] WebSocket 錯誤:`, err);
+      };
+
+      return ws;
+    }
+
+    function wsSendLogin(ws, username, password) {
+      if (!ws) return;
+      //const msg = `${username},AUTH,${password}`;
+      const msg = `{"action": "login","vendor_id": "tawe","caller_id": "${username}","password":"${password}","uuid": ""}`;  
+      ws.send(msg);
+    }
+		function sentMessageGetNumInfo(ws, username) {
+      if (!ws) return;
+      //const msg = `${username},AUTH,${password}`;
+      const msg = `{"action": "get_num_info","vendor_id": "tawe","caller_id": "${username}","uuid": ""}`;
+      ws.send(msg);
+    }
+    /* function sendGetNum(ws, callerId, label, itemID) {
+      const msg = {
+        action: "user_get_num",
+        vendor_id: "tawe",
+        caller_id: callerId,
+        user_id: userID,
+        get_num_item_id: itemID,
+        for_customer:true,
+        uuid: ""
+      };
+      ws.send(JSON.stringify(msg));
+      console.log(`[${label}] 發送 user_get_num 請求`);
+    } */
+
+    function handleWebSocketMessageCSV(data, label) {
+      const cmd = data[data.length-1];
+      if((data[0]==='OK')&&(cmd === "update")){
+        updateNumUI(data[2],label);
+      }
+    }
+    function handleWebSocketMessage(data, label) {
+      if (data.result === 'OK' && data.action === 'login') {
+        initUI(data,label);
+      }  
+      if (data.result === 'OK' && data.action === 'user_get_num') {
+				console.log('web取號.');
+        updateUI(data, label);
+      }
+      if(data.action  === 'new_get_num'){
+				console.log('new_get_num 2 LINE 取號');
+				updateNewGetNumUI(data, label);
+			}
+      if(data.action === 'cancel_get_num'){
+        //取消取號(Line使用者).
+        updateCancelGetNumUI(data, label);
+      }  
+
+      if(data.action === 'get_num_status'){
+        if(data.switch === 'on' ){
+          initData[label].support_get_num = true;
+        }
+        if(data.switch === 'off' ){
+          initData[label].support_get_num = false;
+        }
+      }
+      if(data.action === 'get_num_switch'){
+        if(data.switch === 'on' || (data.switch === 'off')){
+          initData[label].get_num_switch = data.switch;
+        }
+      }
+			if(data.action === 'get_num_info' && data.result === 'OK'){
+				getNumInfoUI(data,label);
+			}
+
+    }
+    function initUI(data, label){
+      console.log(data);
+      initData[label]=data;
+
+      let currQueue = [];
+      let upQueue=[]; 
+      let now = new Date().getTime();
+      for(const key in data.get_num_item_data){
+        let objItem={
+          num: null,
+          timestamp: null,
+          state: null
+        };
+        objItem.num = key;
+        objItem.timestamp = data.get_num_item_data[key].called_time;
+        objItem.state = data.get_num_item_data[key].state;
+
+				
+        if(objItem.state  === "called"){
+					//console.log(now+' '+objItem.timestamp+ ' '+(now-objItem.timestamp)+' '+maxFlapoutTime);
+					if((now - objItem.timestamp) < maxFlapoutTime){
+						userData[label].currQueue.push(objItem);					
+
+					}
+        }
+        if(objItem.state === "waiting"){
+          userData[label].updateQueue.push(objItem);
+        }
+      }
+			let tmpCurrentQueueFull=[];
+      let tmpCurrentQueue = [];
+      let tmpUpcomingQueue = [];
+        if(userData[label].currQueue.length <= maxCurrentQueue){
+          userData[label].currQueue.forEach(obj=>{
+            tmpCurrentQueue.push(obj.num);
+						tmpCurrentQueueFull.push(obj);
+          })
+        }else{
+          for(let i=userData[label].currQueue.length-1; i>=(userData[label].currQueue.length-maxCurrentQueue); i--){
+            let obj = userData[label].currQueue[i];
+            tmpCurrentQueue.unshift(obj.num);
+						tmpCurrentQueueFull.unshift(obj);
+          }
+        }
+        if(userData[label].updateQueue.length> 0){
+          let cnt  = userData[label].updateQueue.length;
+          if(cnt > maxUpdateQueue){
+            cnt = maxUpdateQueue;
+          }
+          for(let i=0; i<cnt;i++){
+            let obj = userData[label].updateQueue[i];
+            tmpUpcomingQueue.push(obj.num);
+          }
+        }
+				const template = document.getElementById('section-template');
+				const dynamicContentArea = document.getElementById('dynamic-content-area');
+				// 初始化
+				const sectionsToGenerate = [
+					{
+						id: label,
+						title: data.caller_name, 
+						currentQueue: tmpCurrentQueue,
+						upcomingQueue:tmpUpcomingQueue
+					}
+				];
+				countSection++;
+				sectionsToGenerate.forEach(function (data, index) {
+						const clone = template.content.cloneNode(true);
+						const container = clone.querySelector('.container');
+						container.id = `container-${data.id}`;
+
+						const h1 = clone.querySelector('h1');
+						if (h1) h1.textContent = data.title;
+
+						const currentQueueOl = clone.querySelector('ol.content');
+						if (currentQueueOl) {
+								currentQueueOl.innerHTML = data.currentQueue.map(item => `<li>${item}</li>`).join('');
+						}
+
+						const upcomingQueueOl = clone.querySelector('ol.content2');
+						if (upcomingQueueOl) {
+								upcomingQueueOl.innerHTML = data.upcomingQueue.map(item => `<li>${item}</li>`).join('');
+						}
+
+
+						// if (index === sectionsToGenerate.length-1) {
+						// 	const hr = clone.querySelector('.group-hr');
+						// 	if (hr) {
+						// 		hr.remove();
+						// 	}
+						// }
+
+						dynamicContentArea.appendChild(clone);
+				});
+				if(countSection=== maxSection){
+					const lastGroupHr = document.querySelector('.group-hr:last-child');
+					if (lastGroupHr) {
+						lastGroupHr.parentNode.removeChild(lastGroupHr);
+					}
+				}	
+				if(tmpCurrentQueueFull.length> 0){
+					tmpCurrentQueueFull.forEach(obj=>{
+						let timeout = maxFlapoutTime - (now - obj.timestamp);
+						let num = obj.num;
+						//console.log('num:'+num+ ' timeout:'+timeout);
+						if(timeout> 0){
+							setTimeout(() => {
+								removeListItem(label, '.content', num);
+							}, timeout);
+						}
+					});
+				}
+    }
+		function getNumInfoUI(data, label){
+			initData[label]=[];
+			initData[label]=data;
+      let currQueue = [];
+      let upQueue=[]; 
+      let now = new Date().getTime();
+			userData[label].currQueue=[];
+			userData[label].updateQueue=[];
+
+      for(const key in data.get_num_item_data){
+        let objItem={
+          num: null,
+          timestamp: null,
+          state: null
+        };
+        objItem.num = key;
+        objItem.timestamp = data.get_num_item_data[key].called_time;
+        objItem.state = data.get_num_item_data[key].state;
+				
+        if(objItem.state  === "called"){
+					if((now - objItem.timestamp) < maxFlapoutTime){
+						//console.log(now+' '+objItem.timestamp+ ' '+(now-objItem.timestamp)+ ' '+maxFlapoutTime);
+						userData[label].currQueue.push(objItem);					
+					}
+        }
+        if(objItem.state === "waiting"){
+          userData[label].updateQueue.push(objItem);
+        }
+      }		
+			let tmpCurrentQueueFull=[];
+      let tmpCurrentQueue = [];
+      let tmpUpcomingQueue = [];
+        if(userData[label].currQueue.length <= maxCurrentQueue){
+          userData[label].currQueue.forEach(obj=>{
+            tmpCurrentQueue.push(obj.num);
+						tmpCurrentQueueFull.push(obj);
+          })
+        }else{
+          for(let i=userData[label].currQueue.length-1; i>=(userData[label].currQueue.length-maxCurrentQueue); i--){
+            let obj = userData[label].currQueue[i];
+            tmpCurrentQueue.unshift(obj.num);
+						tmpCurrentQueueFull.unshift(obj);
+          }
+        }
+        if(userData[label].updateQueue.length> 0){
+          let cnt  = userData[label].updateQueue.length;
+          if(cnt > maxUpdateQueue){
+            cnt = maxUpdateQueue;
+          }
+          for(let i=0; i<cnt;i++){
+            let obj = userData[label].updateQueue[i];
+            tmpUpcomingQueue.push(obj.num);
+          }
+        }			
+
+			updateListWithArrayWithoutAnimation(label, '.content', tmpCurrentQueue);
+			updateListWithArrayWithoutAnimation(label, '.content2', tmpUpcomingQueue);
+			if(tmpCurrentQueueFull.length> 0){
+					tmpCurrentQueueFull.forEach(obj=>{
+						
+						let timeout = maxFlapoutTime - (now - obj.timestamp);
+						let num = obj.num;
+						//console.log('num:'+num+ ' timeout:'+timeout+ ' '+(now - obj.timestamp));
+						if(timeout> 0){
+							setTimeout(() => {
+								removeListItem(label, '.content', num);
+							}, timeout);
+						}
+					});
+				}			
+		}
+    function updateUI(data, label) {
+			//action: 'user_get_num'.
+			let num = data.get_num;
+			if(userData[label].updateQueue===null){
+				userData[label].updateQueue=[];
+			}
+			
+			let objItem={
+				num: num.toString(),
+				timestamp: null,
+				state: 'waiting'
+			};
+			userData[label].updateQueue.push(objItem);
+			updateUpNumUI(label);
+    }
+    function updateNewGetNumUI(data, label) {
+			//action: 'user_get_num'.
+			let num = data.curr_num;
+			if(userData[label].updateQueue===null){
+				userData[label].updateQueue=[];
+			}
+			
+			let objItem={
+				num: num.toString(),
+				timestamp: null,
+				state: 'waiting'
+			};
+			userData[label].updateQueue.push(objItem);
+			updateUpNumUI(label);
+    }		
+    function updateCancelGetNumUI(data, label) {
+			let num = data.cancel_num;
+      let popIdx = userData[label].updateQueue.findIndex(item => item.num === num);
+			if(popIdx!== -1){
+				userData[label].updateQueue.splice(popIdx,1);		
+				removeListItem(label,'.content2',num);
+			}else{
+				console.warn('updateCancelGetNumUI '+num+' not fond.');
+				//console.warn(userData[label].updateQueue);
+			}
+      
+      
+			updateUpNumUI(label);
+    }			
+    function updateNumUI(num, label){
+			//action: 'update'.
+
+      let popIdx = userData[label].updateQueue.findIndex(item => item.num === num);
+			if(popIdx!== -1){
+				userData[label].updateQueue.splice(popIdx,1);		
+				removeListItem(label,'.content2',num);
+			}else{
+				console.warn('updateNumUI '+num+' not fond.');
+				//console.warn(JSON.stringify(userData[label].updateQueue));
+			}
+
+			let tmpC = getListItemQueue(label,'.content');
+			let popIdx2 = -1;
+			if(tmpC !== false){
+				popIdx2 = tmpC.indexOf(num);
+			}
+			console.log("num:"+num+ ' popIdx2:'+popIdx2+' tmpC:'+JSON.stringify(tmpC));
+			if(popIdx2 !== -1){
+				//若號碼已存在叫號陣列, 則不再顯示.
+				return;
+			}
+      setTimeout(() => {
+				removeListItem(label, '.content', num);
+			}, maxFlapoutTime);
+      addListItem(label, '.content', num);
+
+			const now = Date.now();
+			let objItem={
+				num: num,
+				timestamp: now,
+				state: 'called'
+			};			
+			if(userData[label].currQueue=== null){
+				userData[label].currQueue=[];
+			}
+      userData[label].currQueue.push(objItem);
+			//移除即將入場content2的號碼. 加入入場content區域.
+			//補上未上列入場的號碼.
+
+      //叫號.
+      //移除等待, 加入叫號..
+      //叫號大于15, 移除第一位.
+			updateUpNumUI(label);
+    }
+		function updateUpNumUI(label){
+      //補上最近取號.
+			let tempUpdateQueue=[];
+			if(userData[label].updateQueue.length> 0){
+				let cnt  = userData[label].updateQueue.length;
+				if(cnt > maxUpdateQueue){
+					cnt = maxUpdateQueue;
+				}
+				for(let i=0; i<cnt;i++){
+					let obj = userData[label].updateQueue[i];
+					tempUpdateQueue.push(obj.num);
+				}
+				let tmpQ = getListItemQueue(label,'.content2');
+				if(tmpQ !== false){
+					tempUpdateQueue.forEach(obj=>{
+						console.log('['+label+'] '+' obj:'+obj);
+						if(tmpQ.indexOf(obj) === -1){
+							addListItem(label, '.content2', obj);
+						}
+					});
+				}
+			}
+		}
+		function getListItemQueue(containerId, listClass){
+			const myList = document.querySelector(`#container-${containerId} ${listClass}`);
+			if (!myList) {
+					console.warn(`找不到指定的列表：#container-${containerId} ${listClass}`);
+					return false;
+			}
+			const items = myList.querySelectorAll('li');
+			let tempQueue=[];
+			items.forEach(item => {
+				tempQueue.push(item.textContent);
+			});
+			return tempQueue;
+		}
+		
+			/**
+             * 增加項目到指定的 OL 列表。
+             * 可選擇是否直接插入到排序好的位置，或直接添加到末尾。
+             * @param {string} containerId - 容器的 ID (例如 'SHOES')。
+             * @param {string} listClass - 列表的 CSS 類別 (例如 '.content' 或 '.content2')。
+             * @param {string} number - 要新增的號碼。
+             * @param {boolean} [shouldSort=false] - 如果為 true，則直接插入到排序好的位置；如果為 false，則添加到列表末尾 (預設)。
+             */
+            function addListItem (containerId, listClass, number, shouldSort = false) {
+                const myList = document.querySelector(`#container-${containerId} ${listClass}`);
+                if (!myList) {
+                    console.warn(`找不到指定的列表：#container-${containerId} ${listClass}`);
+                    return;
+                }
+
+                const newItem = document.createElement('li');
+                newItem.textContent = number;
+
+                // 步驟 1: 新增元素並套用初始過渡類別
+                newItem.classList.add('new-item-entering');
+
+                if (shouldSort) {
+                    // 如果選擇排序插入，則找到正確的位置插入
+                    const existingItems = Array.from(myList.querySelectorAll('li'));
+                    let inserted = false;
+
+                    for (let i = 0; i < existingItems.length; i++) {
+                        const existingText = existingItems[i].textContent.trim();
+                        // 比較新項目和現有項目的順序
+                        if (number.localeCompare(existingText, undefined, { numeric: true, sensitivity: 'base' }) < 0) {
+                            myList.insertBefore(newItem, existingItems[i]);
+                            inserted = true;
+                            break; // 找到位置就跳出循環
+                        }
+                    }
+
+                    // 如果循環結束後還沒有插入，表示新項目是最大的，直接添加到列表末尾
+                    if (!inserted) {
+                        myList.appendChild(newItem);
+                    }
+                } else {
+                    // 如果不選擇排序插入，則直接添加到列表末尾 (原有的簡單添加邏輯)
+                    myList.appendChild(newItem);
+                }
+
+                // 步驟 2: 強制瀏覽器重繪 (Triggers reflow/re-render)
+                void newItem.offsetWidth;
+
+                // 步驟 3: 移除初始過渡類別，觸發過渡效果
+                newItem.classList.remove('new-item-entering');
+
+                // 注意：這裡不需要額外的 transitionend 監聽器來觸發 sortListItems。
+                // 因為當 shouldSort 為 true 時，項目已經直接插入到排序好的位置；
+                // 當 shouldSort 為 false 時，項目就是添加到末尾，也不需要重新排序。
+            }
+
+			/**
+             * 從指定的 OL 列表移除特定號碼的項目。
+             * @param {string} containerId - 容器的 ID (例如 'SHOES')。
+             * @param {string} listClass - 列表的 CSS 類別 (例如 '.content' 或 '.content2')。
+             * @param {string} number - 要移除的號碼。
+             * @returns {boolean} - 如果找到並移除了項目則返回 true，否則返回 false。
+             */
+            function removeListItem (containerId, listClass, number) {
+                const myList = document.querySelector(`#container-${containerId} ${listClass}`);
+                if (!myList) {
+                    console.warn(`找不到指定的列表：#container-${containerId} ${listClass}`);
+                    return false;
+                }
+
+                const items = myList.querySelectorAll('li');
+                let itemFound = false;
+                items.forEach(item => {
+                    if (item.textContent === number) {
+                        itemFound = true;
+                        item.classList.add('removing-item');
+                        item.addEventListener('transitionend', function handler() {
+                            item.removeEventListener('transitionend', handler);
+                            item.remove();
+                        });
+                    }
+                });
+                return itemFound;
+            }
+
+			 /**
+             * 依照號碼對指定的 <ol> 列表進行排序。
+             * @param {string} listSelector - 要排序的 <ol> 元素的 CSS 選擇器。
+             */
+            function sortListItems(listSelector) {
+                const olElement = document.querySelector(listSelector);
+
+                if (!olElement) {
+                    console.warn(`找不到指定的列表元素：${listSelector}`);
+                    return;
+                }
+
+                const items = Array.from(olElement.querySelectorAll('li'));
+
+                items.sort((a, b) => {
+                    const textA = a.textContent.trim();
+                    const textB = b.textContent.trim();
+                    return textA.localeCompare(textB, undefined, { numeric: true, sensitivity: 'base' });
+                });
+
+                // 使用 DocumentFragment 提高 DOM 操作效率
+                const fragment = document.createDocumentFragment();
+                items.forEach(item => {
+                    fragment.appendChild(item);
+                });
+                olElement.innerHTML = ''; // 清空原有列表
+                olElement.appendChild(fragment); // 一次性添加所有排序後的項目
+                console.log(`列表 ${listSelector} 已成功排序。`);
+            }
+
+			/**
+             * 用一個新的陣列來更新指定的 <ol> 列表。
+             * 現有項目會被移除，新項目會被逐一添加。
+             * @param {string} containerId - 容器的 ID (例如 'SHOES')。
+             * @param {string} listClass - 列表的 CSS 類別 (例如 '.content' 或 '.content2')。
+             * @param {Array<string>} newItemsArray - 包含所有新號碼的陣列。
+             * @param {boolean} [shouldSort=true] - 更新後是否進行排序，預設為 true。
+             * @param {number} [transitionDelay=50] - 每個項目添加之間的延遲 (毫秒)，預設為 50ms。
+             */
+			function updateListWithArray(containerId, listClass, newItemsArray, shouldSort = true, transitionDelay = 50) {
+				const myList = document.querySelector(`#container-${containerId} ${listClass}`);
+				if (!myList) {
+					console.warn(`更新列表失敗：找不到指定的列表：#container-${containerId} ${listClass}`);
+					return;
+				}
+
+				// 1. 清空所有現有項目，帶有移除動畫
+				const existingItems = Array.from(myList.querySelectorAll('li'));
+				if (existingItems.length > 0) {
+					let itemsRemovedCount = 0;
+					existingItems.forEach(item => {
+						item.classList.add('removing-item'); // 添加移除動畫類別
+						item.addEventListener('transitionend', function handler() {
+							item.removeEventListener('transitionend', handler);
+							item.remove(); // 動畫結束後移除 DOM 元素
+							itemsRemovedCount++;
+							// 當所有舊項目都移除後，才開始添加新項目
+							if (itemsRemovedCount === existingItems.length) {
+								addNewItemsSequentially(newItemsArray);
+							}
+						});
+					});
+				} else {
+					// 如果沒有舊項目，直接添加新項目
+					addNewItemsSequentially(newItemsArray);
+				}
+
+				// 輔助函數：逐一添加新項目
+				function addNewItemsSequentially(itemsToAdd) {
+					let i = 0;
+					function addNextItem() {
+						if (i < itemsToAdd.length) {
+							// 使用 addListItem，但暫不在此處單獨排序，因為最後會統一排序
+							addListItem(containerId, listClass, itemsToAdd[i], false);
+							i++;
+							setTimeout(addNextItem, transitionDelay); // 每個項目添加之間有延遲，營造逐一出現效果
+						} else {
+							// 所有新項目都添加完畢後，執行最終排序
+							if (shouldSort) {
+								sortListItems(`#container-${containerId} ${listClass}`);
+							}
+						}
+					}
+					// 在開始添加新項目之前，等待舊項目完全移除的過渡時間
+					// 這裡確保了舊項目移除動畫有足夠時間播放，然後才開始新項目出現
+					const delayBeforeAdding = existingItems.length > 0 ? 500 : 0; // 500ms 是 removing-item 的過渡時間
+					setTimeout(addNextItem, delayBeforeAdding);
+				}
+			}
+// 新增函式：不帶動畫效果的列表更新
+            /**
+             * 用一個新的陣列來更新指定的 <ol> 列表，且不帶任何動畫效果。
+             * @param {string} containerId - 容器的 ID (例如 'SHOES')。
+             * @param {string} listClass - 列表的 CSS 類別 (例如 '.content' 或 '.content2')。
+             * @param {Array<string>} newItemsArray - 包含所有新號碼的陣列。
+             * @param {boolean} [shouldSort=true] - 更新後是否進行排序，預設為 true。
+             */
+            function updateListWithArrayWithoutAnimation(containerId, listClass, newItemsArray, shouldSort = true) {
+                const myList = document.querySelector(`#container-${containerId} ${listClass}`);
+                if (!myList) {
+										console.warn(`更新列表失敗：找不到指定的列表：#container-${containerId} ${listClass}`);
+                    return;
+                }
+
+                // 建立一個 DocumentFragment，一次性添加所有項目以提高效能
+                const fragment = document.createDocumentFragment();
+
+                // 根據新陣列建立新的項目
+                newItemsArray.forEach(itemText => {
+                    const newItem = document.createElement('li');
+                    newItem.textContent = itemText;
+                    fragment.appendChild(newItem);
+                });
+
+                // 立即清空舊列表
+                myList.innerHTML = '';
+                // 一次性將所有新項目添加到 DOM 中
+                myList.appendChild(fragment);
+
+                // 如果需要，進行排序
+                if (shouldSort) {
+										sortListItems(`#container-${containerId} ${listClass}`);
+                }
+            }			
+  </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+version: '3'
+services:
+  web:
+    build: .
+    container_name: html_web
+    ports:
+      - "8080:80"
+    volumes:
+      - ./js:/usr/share/nginx/html/js
+      - ./images:/usr/share/nginx/html/images
+    restart: always

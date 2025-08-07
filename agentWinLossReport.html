@@ -1,0 +1,296 @@
+<!-- 代理商輸贏報表 -->
+
+<h1 class="mb-0" id="pageTitle">
+  <div class="spinner-grow"></div>
+</h1>
+
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+  @(平均下注金額)：@(玩家投注金額) / @(下注帳號)<br>
+  @(平均下注局數)：@(下注次數) / @(下注帳號)<br>
+  登入帳號：transferIn_account<br>
+  進桌下注率：下注帳號 / 登入帳號<br>
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="input-group mb-3">
+      <span class="input-group-text">時間</span>
+      <input type="datetime-local" class="form-control" step="1" id="startdaytime">
+      <span class="input-group-text">~</span>
+      <input type="datetime-local" class="form-control" step="1" id="enddaytime">
+    </div>
+  </div>
+  <div class="col">
+    <button type="button" id="search" class="btn btn-primary me-2">@(搜尋)</button>
+  </div>
+</div>
+
+<div class="row d-none" id="filterGroup">
+  <div class="col">
+    <div class="input-group mb-3">
+      <span class="input-group-text">@(群組)</span>
+      <select class="form-control" id="serverSelect"></select>
+    </div>
+  </div>
+  <div class="col">
+    <div class="input-group mb-3">
+      <span class="input-group-text">@(幣別)</span>
+      <select class="form-control" id="currencySelect"></select>
+    </div>
+  </div>
+  <div class="col">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#currencyModal">@(幣別統計)</button>
+  </div>
+</div>
+
+<div id="reportTableContainer"></div>
+
+<script id="reportTable" type="text/html">
+  <table class="table table-bordered table-hover w-100">
+    <thead>
+      <tr>
+        <th>@(群組)</th>
+        <th>@(幣別)</th>
+        <th>@(玩家投注)($)</th>
+        <th>@(玩家贏分)($)</th>
+        <th>@(公司損益)($)</th>
+        <th>@(平均下注金額)</th>
+        <th>@(平均下注局數)</th>
+        <th>@(下注次數)</th>
+        <th>@(下注帳號)</th>
+        <th>@(進桌下注率)</th>
+        <th>@(登入次數)</th>
+        <!-- <th>@(登入帳號)</th> -->
+        <th>@(新帳號)</th>
+        <th>RTP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ foreach m in data }}
+      <tr data-row="{{ $index }}">
+        <td>{{ m.group }}</td>
+        <td>{{ m.currency }}</td>
+        <td>{{ m.betamount | toThousands }}</td>
+        <td>{{ m.payamount | toThousands }}</td>
+        <td>{{ m.score | toThousands }}</td>
+        <td>{{ m.betamount / m.total_account | toThousands }}</td>
+        <td>{{ m.total / m.total_account | toThousands }}</td>
+        <td>{{ m.total }}</td>
+        <td>{{ m.total_account }}</td>
+        <td>{{ m.playAccount }}%</td>
+        <td>{{ m.login }}</td>
+        <!-- <td>{{ m.login_account }}</td> -->
+        <td>{{ m.create }}</td>
+        <td>{{ m.rtp }}%</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</script>
+
+<script id="totalCurrencyTable" type="text/html">
+  {{ foreach m in data }}
+  <div class="row p-1">
+    <button class="btn btn-light border border-black fs-5" data-bs-toggle="collapse"
+      data-bs-target="#{{ m.currency }}" aria-expanded="false" aria-controls="{{ m.currency }}">
+      <i class="float-start lh-base fa-solid fa-plus"></i>
+      <i class="float-start lh-base fa-solid fa-minus"></i>
+      {{ m.currency }}
+    </button>
+  </div>
+  
+  <div data-type="{{ m.currency }}" id="{{ m.currency }}" class="panel-collapse collapse in">
+    <table class="table table-bordered table-hover table-striped w-100">
+      <tbody>
+        <tr><td>@(幣別)</td>         <td>{{ m.currency }}</td></tr>
+        <tr><td>@(玩家投注)($)</td>  <td>{{ m.betamount | toThousands }}</td></tr>
+        <tr><td>@(玩家贏分)($)</td>  <td>{{ m.payamount | toThousands }}</td></tr>
+        <tr><td>@(公司損益)($)</td>  <td>{{ m.score | toThousands }}</td></tr>
+        <tr><td>@(平均下注金額)</td> <td>{{ m.betamount / m.total_account | toThousands }}</td></tr>
+        <tr><td>@(平均下注局數)</td> <td>{{ m.total / m.total_account | toThousands }}</td></tr>
+        <tr><td>@(下注次數)</td>     <td>{{ m.total }}</td></tr>
+        <tr><td>@(下注帳號)</td>     <td>{{ m.total_account }}</td></tr>
+        <tr><td>@(進桌下注率)</td>   <td>{{ m.playAccount }}%</td></tr>
+        <tr><td>@(登入次數)</td>     <td>{{ m.login }}</td></tr>
+        <!-- <tr><td>@(登入帳號)</td>     <td>{{ m.login_account }}</td> </tr> -->
+        <tr><td>@(新帳號)</td>       <td>{{ m.create }}</td></tr>
+        <tr><td>RTP</td>             <td>{{ m.rtp }}%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  {{ end }}
+</script>
+
+<div class="modal fade" id="currencyModal">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5">@(幣別統計)</h1>
+        <button type="button" data-bs-dismiss="modal" class="btn-close" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body"></div>
+
+      <div class="modal-footer">
+        <button data-bs-dismiss="modal" class="btn btn-primary">@(關閉)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(() => {
+    const totalCurrencyTangular = Tangular.compile($('#totalCurrencyTable').html());
+    const tangular = Tangular.compile($('#reportTable').html());
+    let totalCurrencyData = {};
+    let subWinLossData = {};
+
+    // Init
+    $('#startdaytime').val(new Date().format('yyyy-MM-ddT00:00:00'));
+    $('#enddaytime').val(new Date().format('yyyy-MM-ddT23:59:59'));
+    setTimeout(() => $('#search').click(), 10);
+
+    $('#search').click((e) => {
+      subWinLossData = {};
+      totalCurrencyData = {};
+      CORE.jsonData = {
+        startTime: new Date($('#startdaytime').val()).format('yyyy-MM-dd hh:mm:ss'),
+        endTime: new Date($('#enddaytime').val()).format('yyyy-MM-dd hh:mm:ss'),
+      };
+      $('#serverSelect, #currencySelect').empty();
+      CORE.Mask('show');
+      console.log(CORE.jsonData);
+      CORE.Record($(e.currentTarget), 'info');
+      AJAX('POST /report/agent', CORE.jsonData, (value) => {
+        CORE.Mask('hide');
+        console.log('POST /report/agent', value);
+        if (value instanceof Array && value.length && value[0].error) return Swal.fire({ icon: "error", text: value[0].msg, });
+        if (value.success == false) return Swal.fire({ icon: "error", text: value.msg, });
+        $('#filterGroup').removeClass('d-none');
+        $('#serverSelect, #currencySelect').append(`<option value="all">All</option>`);
+
+        const detailList = [];
+        for (let i = 0; i < value.length; i++) {
+          const details = value[i].data.detail;
+          const aboList = value[i].aboList;
+          details.map((item, index) => {
+            for (let j = 0; j < aboList.length; j++) {
+              if (item.aboid == aboList[j].aboId) {
+                item.serverName = aboList[j].server;
+                detailList.push(item);
+              }
+            }
+          });
+        }
+        console.warn('detailList', detailList);
+
+        const empty = {
+          betamount: 0,
+          payamount: 0,
+          score: 0,
+          total: 0,
+          total_account: 0,
+          login: 0,
+          login_account: 0,
+          create: 0,
+        };
+        detailList.map((item, index) => {
+          console.log('lds data', item.serverName, item);
+          $('#serverSelect').append(`<option value="${item.serverName}">${item.serverName}</option>`);
+
+          item.currency = item.currency.toUpperCase();
+          if (!subWinLossData[item.currency]) subWinLossData[item.currency] = {};
+
+          if (!totalCurrencyData[item.currency]) {
+            totalCurrencyData[item.currency] = CORE.copyObj(empty);
+            totalCurrencyData[item.currency].currency = item.currency;
+          }
+
+          if (!subWinLossData[item.currency][item.serverName]) {
+            subWinLossData[item.currency][item.serverName] = CORE.copyObj(empty);
+            subWinLossData[item.currency][item.serverName].group = item.serverName;
+            subWinLossData[item.currency][item.serverName].currency = item.currency;
+          }
+
+          subWinLossData[item.currency][item.serverName].betamount += item.betamount;
+          subWinLossData[item.currency][item.serverName].payamount += item.payamount;
+          subWinLossData[item.currency][item.serverName].score += item.score;
+          subWinLossData[item.currency][item.serverName].total += item.total;
+          subWinLossData[item.currency][item.serverName].total_account += item.total_account;
+          subWinLossData[item.currency][item.serverName].login += item.billing_type_total.transferIn;
+          subWinLossData[item.currency][item.serverName].login_account += item.transferIn_account;
+          subWinLossData[item.currency][item.serverName].create += item.billing_type_total.create;
+
+          totalCurrencyData[item.currency].betamount += item.betamount;
+          totalCurrencyData[item.currency].payamount += item.payamount;
+          totalCurrencyData[item.currency].score += item.score;
+          totalCurrencyData[item.currency].total += item.total;
+          totalCurrencyData[item.currency].total_account += item.total_account;
+          totalCurrencyData[item.currency].login += item.billing_type_total.transferIn;
+          totalCurrencyData[item.currency].login_account += item.transferIn_account;
+          totalCurrencyData[item.currency].create += item.billing_type_total.create;
+
+          if (!$('#currencySelect').find(`[value="${item.currency}"]`).length) $('#currencySelect').append(`<option value="${item.currency}">${item.currency}</option>`);
+        });
+
+        for (let l in subWinLossData) {
+          for (let k in subWinLossData[l]) {
+            subWinLossData[l][k].rtp = Math.round(subWinLossData[l][k].payamount / subWinLossData[l][k].betamount * 10000) / 100;
+            subWinLossData[l][k].playAccount = Math.round(subWinLossData[l][k].total_account / subWinLossData[l][k].login_account * 10000) / 100;
+            subWinLossData[l][k].betamount = subWinLossData[l][k].betamount / 10000;
+            subWinLossData[l][k].payamount = subWinLossData[l][k].payamount / 10000;
+            subWinLossData[l][k].score = subWinLossData[l][k].score / 10000;
+          }
+        }
+
+        for (let k in totalCurrencyData) {
+          totalCurrencyData[k].rtp = Math.round(totalCurrencyData[k].payamount / totalCurrencyData[k].betamount * 10000) / 100;
+          totalCurrencyData[k].playAccount = Math.round(totalCurrencyData[k].total_account / totalCurrencyData[k].login_account * 10000) / 100;
+          totalCurrencyData[k].betamount = totalCurrencyData[k].betamount / 10000;
+          totalCurrencyData[k].payamount = totalCurrencyData[k].payamount / 10000;
+          totalCurrencyData[k].score = totalCurrencyData[k].score / 10000;
+        }
+
+        console.log('ALL Done', subWinLossData, 'total CurrencyData', totalCurrencyData);
+        drawTable();
+      });
+    });
+
+    $('#serverSelect, #currencySelect').change((e) => drawTable());
+
+    function drawTable() {
+      const group = $('#serverSelect').val();
+      const currency = $('#currencySelect').val();
+      if (currency === 'all' || group === 'all') {
+        let d = [];
+        for (let k in subWinLossData) {
+          for (let l in subWinLossData[k]) {
+            if (currency === 'all' && group === 'all') d.push(subWinLossData[k][l]);
+            else if (l === group || k === currency) d.push(subWinLossData[k][l]);
+          }
+        }
+        $('#reportTableContainer').html(tangular({ data: d }));
+      } else {
+        let d = subWinLossData[currency][group];
+        $('#reportTableContainer').html(tangular({ data: [d] }));
+      }
+      $('#reportTableContainer').find('table').DataTable({
+        responsive: true,
+        aLengthMenu: [[10, 15, 20, -1], ['10', '15', '20', '@(全部)']],
+      });
+      const tempD = [];
+      for (let k in totalCurrencyData) tempD.push(totalCurrencyData[k]);
+
+      console.log(tempD);
+      $('#currencyModal .modal-body').html(totalCurrencyTangular({ data: tempD }));
+    }
+
+    Tangular.register('toThousands', function (num) {
+      const parts = num.toString().split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      if (parts[1]) parts[1] = parts[1].substring(0, 2);
+      return parts.join('.');
+    });
+  });
+</script>
