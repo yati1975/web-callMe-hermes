@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="version" content="1.0.4">
+  <meta name="version" content="1.0.9">
+  <!-- <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+	<script>eruda.init();</script>        -->
+
   <script src="./js/crypto-js.min.js"></script>
   <script src="./js/localforage.min.js"></script>
   <script src="./WebSocket_lower.js"></script>  
@@ -19,7 +22,7 @@
       font-family: "Noto Sans TC", sans-serif;
       margin: 0;
       padding: 0;
-      background: #fff;
+      background: #f2f2f2;
       color: #000;
     }
 
@@ -31,7 +34,9 @@
       margin: 0 auto;
       padding: 20px;
     }
-
+    .container.hidden {
+        display: none;
+    }
     .title {
       text-align: center;
       font-size: 1.5rem;
@@ -55,7 +60,7 @@
 
     .title-row {
       display: flex;
-      /* justify-content: space-between; */
+      justify-content: space-between; 
       justify-content: center;
       align-items: flex-end;
       flex-wrap: wrap;
@@ -192,7 +197,7 @@
     }
     /* 浮動視窗樣式 */
     .modal {
-      background-color: white;
+      background-color: #f2f2f2;
       position: relative;
       padding: 20px;
       width: 100%;
@@ -439,6 +444,7 @@
       font-size: 0.7rem;
       margin-top: -1vh;
     }
+  }
   /* 橫版設計 */   
   @media  (max-height: 300px)and (orientation: landscape){
     .title {
@@ -497,7 +503,8 @@
     #ver {
       font-size: 0.7rem;
       margin-top: -1vh;
-    }    
+    }   
+  } 
   </style>
 </head>
 <body>
@@ -506,13 +513,13 @@
     <div class="middle">
       <!-- 鞋履區塊 -->
       <div class="section">
-        <!-- <div class="title-row">
-          <h2>鞋履</h2>
-          <span>SHOES (A)</span>
-        </div> -->
         <div class="title-row">
           <h2 id="caller_name_A"></h2>
-        </div>
+          <span id="caller_name_s_A"></span>
+        </div> 
+        <!-- <div class="title-row">
+          <h2 id="caller_name_A"></h2>
+        </div> -->
         <button id="btn_A" class="button" onclick="getNumber(this,'A')">取號</button>  
         <div class="info">
           <div>
@@ -532,13 +539,13 @@
 
       <!-- 絲巾區塊 -->
       <div class="section">
-        <!-- <div class="title-row">
-          <h2>絲巾</h2>
-          <span>SILK (B)</span>
-        </div> -->
         <div class="title-row">
           <h2 id="caller_name_B"></h2>
-        </div>
+          <span id="caller_name_s_B"></span>
+        </div> 
+        <!--<div class="title-row">
+          <h2 id="caller_name_B"></h2>
+        </div> -->  
         <button id="btn_B" class="button" onclick="getNumber(this,'B')">取號</button>
         <div class="info">
           <div>
@@ -561,9 +568,8 @@
     <div class="footerdisp">
       <div class="footer">
         <ul>
-          <li>一組號碼至多兩位貴賓, 每組購物時間為10分鐘</li>
-          <li>一次抽取單區號碼，10分鐘後方可取下一區號碼</li>
-          <li>過號請重新取號或於該區現場等候，由同仁安排入場</li>
+          <li>每組號碼最多可供兩位貴賓一同使用，每次入場時間為10分鐘</li>
+          <li>若過號，請於現場過號排隊區等候，將由同仁協助安排入場</li>
         </ul>
       </div>
       <div class="footerLogoVer">
@@ -621,6 +627,7 @@
     const versionMeta = document.querySelector('meta[name="version"]');
     const version = versionMeta ? versionMeta.getAttribute('content') : '未知版本';
     document.getElementById('ver').innerText = "ver."+version;
+    //document.querySelector('.container').classList.add('hidden');
 
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -751,7 +758,7 @@
       //     console.warn(`[${label}] 非 JSON 格式：`, data);
       //   }
       // };
-        ws.onmessage = (data) => {
+      ws.onmessage = (data) => {
           
           console.log('[WebSocket 收到回傳資料]', data);
 
@@ -886,8 +893,13 @@
       if (data.result === 'OK' && data.action === 'login') {
         initUI(data,label);
       }  
-      if (data.result === 'OK' && data.action === 'user_get_num' && data.user_id === userID) {
-        updateUI(data, label);
+      if (data.result === 'OK' && data.action === 'user_get_num' ) {
+        if(data.user_id === userID){
+          updateUI(data, label);
+        }else{
+          updateUserGetNumData(data,label);
+        }
+        
       }
       if(data.action === 'get_num_status'){
         if(data.switch === 'on' ){
@@ -896,16 +908,60 @@
         if(data.switch === 'off' ){
           initData[label].support_get_num = false;
         }
-
       }
       if(data.action === 'get_num_switch'){
         if(data.switch === 'on' || (data.switch === 'off')){
           initData[label].get_num_switch = data.switch;
         }
       }
-      // if(data.result === 'OK' && data.action === 'user_get_num'){
+      if(data.result === 'OK' && data.action === 'remove_number'){
+        if(data.remove_num){
+          //todo.需補上重新計算等候人數.
+          reCntWaitting(label,data.remove_num,'removed');
+        }
+      }  
+      if(data.action === 'web_cancel_get_num'){
+        //取消取號(web使用者).
+        if(data.cancel_num){
+          //todo.需補上重新計算等候人數.
+          reCntWaitting(label,data.cancel_num,'removed');
+        }
+      }   
+      
+      if(data.action === 'cancel_get_num'){
+        //取消取號(Line使用者).
+        if(data.cancel_num){
+          //todo.需補上重新計算等候人數.
+          reCntWaitting(label,data.cancel_num,'removed');
+        }
+      }
+      if(data.action === 'new_get_num'){
+        //取號(Line使用者).
+        if(data.curr_num){
+          let objItem={
+            num: data.curr_num,
+            cu: null,
+            state: 'waiting'
+          };          
+          //todo.需補上重新計算等候人數.
+          reCntWaitting(label,data.curr_num,'waiting');
+        }
+      }
 
-      // }
+    }
+
+    function countWaiting(data, getnum){
+      let cnt = 0;
+      for(const key in data){
+          let obj = data[key];
+          if(obj.state === "waiting"){
+              cnt ++;
+          }
+          if(Number(key) ===getnum){
+            break;
+          }
+      }
+      return cnt;
     }
     function initUI(data, label){
       console.log(data);
@@ -917,6 +973,7 @@
       // }
 
       const caller_name = document.getElementById(`caller_name_${label}`);
+      const caller_name_s = document.getElementById(`caller_name_s_${label}`);
       const curr_num = document.getElementById(`curr_num_${label}`);
       const waiting = document.getElementById(`waiting_${label}`);
       const btnGetNum = document.getElementById(`btn_${label}`);
@@ -936,27 +993,31 @@
         caller_name.textContent = storename+' ['+callername+']';  
       }else{
         caller_name.textContent = storename;
+        let storeArr = storename.split(' ');
+        if(storeArr.length>1){
+          caller_name.textContent = storeArr[0];
+          caller_name_s.textContent = storeArr[1]+' ('+`${label}`+')';
+        }
       }
       
-      curr_num.textContent = nowCurrNum;
+      curr_num.textContent = `${label}`+nowCurrNum.toString();
 
-      // if(((data.get_num_item_type !== null)&&(data.get_num_item_type!=="")) &&
-      //   ((data.get_num_item_data !== null)&&(data.get_num_item_data!==""))){
-      //   //計算目前等候組數.
-      //   let cnt = 0;
-      //   for(const key in data.get_num_item_data){
-      //       let obj = data.get_num_item_data[key];
-      //       if(obj.state === "waiting"){
-      //           cnt ++;
-      //       }
-      //   }
-      //   waiting.textContent = cnt;
-      // }else{
-      //   let less = nowLastGetNum - nowCurrNum;
-      //   waiting.textContent = less;
-      // }
-      // get_num.style.display="none";
-      // btnGetNum.style.display = "unset";
+      /* let waitNum=0;
+      if(((data.get_num_item_type !== null)&&(data.get_num_item_type!=="")) &&
+        ((data.get_num_item_data !== null)&&(data.get_num_item_data!==""))){
+        //計算目前等候組數.
+        let cnt = 0;
+        for(const key in data.get_num_item_data){
+            let obj = data.get_num_item_data[key];
+            if(obj.state === "waiting"){
+                cnt ++;
+            }
+        }
+        waitNum = cnt;
+      }else{
+        waitNum = nowLastGetNum - nowCurrNum;;
+      } */
+      
 
       btnGetNum.disabled = false;
       if(data.support_get_num === false){
@@ -966,13 +1027,25 @@
       //   btnGetNum.disabled = true;
       // }
       if((userData[`clientId${label}`]) && (userData[`clientId${label}`].getnum!== null)){
-        get_num.textContent = userData[`clientId${label}`].getnum;
-        let wless = userData[`clientId${label}`].getnum - nowCurrNum;
+        get_num.textContent = `${label}`+userData[`clientId${label}`].getnum;
+        /* let wless = userData[`clientId${label}`].getnum - nowCurrNum;
         if(wless <= 0){
           wless = 0;
+        } */
+        
+        let cnt = countWaiting(data.get_num_item_data, userData[`clientId${label}`].getnum);
+        let key = userData[`clientId${label}`].getnum.toString();  
+        let userState = data.get_num_item_data[key];
+        if(userState.state === 'waiting'){
+          waiting.textContent = cnt;
+          console.log('cnt:'+cnt);
+        }else{
+          waiting.textContent = 0;
+          console.log('0');
         }
-        waiting.textContent = wless;
-        if(wless > 0){
+        
+        /*if(wless > 0){*/
+        if(userState.state === 'waiting'){
           btnGetNum.textContent = '已取號';
           btnGetNum.disabled = true;
           if(!btnGetNum.classList.contains('disabled')){
@@ -983,6 +1056,7 @@
       
       //debugTxt.textContent = new Date().toLocaleTimeString();
     }
+
     function updateUI(data, label) {
       const btn = document.getElementById(`btn_${label}`);
       const displayNow = document.getElementById(`get_num_${label}`);
@@ -999,10 +1073,14 @@
       }
       //btn.style.backgroundColor = '#DFDFDF';
       btn.disabled =true;
-      displayNow.textContent = nowUserGetNumValue;
-      let nowCurrNum = Number(initData[label].curr_num);
-      let waitN = nowUserGetNumValue - nowCurrNum;
-      displayLess.textContent = waitN;
+      displayNow.textContent = label+nowUserGetNumValue.toString();
+      // let nowCurrNum = Number(initData[label].curr_num);
+      // let waitN = nowUserGetNumValue - nowCurrNum;
+      // if(waitN < 0){
+      //   waitN = 0;
+      // }
+      // displayLess.textContent = waitN;
+
 
       nowUserGetNumTime = new Date();
       let clientId; 
@@ -1029,45 +1107,121 @@
       } catch (error) {
         console.error(error);
       }
-      let btnOther;
-      if(label === 'A'){
-        btnOther = document.getElementById('btn_B');
-      }else{
-        btnOther = document.getElementById('btn_A');
-      }
-      if(!btnOther.classList.contains('disabled')){
-        btnOther.disabled = true;
-        btnOther.classList.add('disabled');
-      }
-      
-      startEvent(nowUserGetNumTime);
+      // let btnOther;
+      // if(label === 'A'){
+      //   btnOther = document.getElementById('btn_B');
+      // }else{
+      //   btnOther = document.getElementById('btn_A');
+      // }
+      // if(!btnOther.classList.contains('disabled')){
+      //   btnOther.disabled = true;
+      //   btnOther.classList.add('disabled');
+      // }
+      let getnumObj={
+        called_time: '', 
+        for_customer: data.for_customer, 
+        get_num_item_id: data.get_num_item_id,
+        state: 'waiting'
+      };
+      initData[label].get_num_item_data[data.get_num] = getnumObj;
+
+      console.log(JSON.stringify(initData[label].get_num_item_data));
+      let cnt = countWaiting(initData[label].get_num_item_data, data.get_num);
+      console.log(cnt);
+      displayLess.textContent = cnt;
+      //startEvent(nowUserGetNumTime);
       // displayLess.textContent = waitMin;
       // displayNow.style.display = "inline-block";
       //debugTxt.textContent = new Date().toLocaleTimeString();
     }
+    function updateUserGetNumData(data,label){
+      
+      console.log('data'+data);
+      let getnumObj={
+        called_time: '', 
+        for_customer: data.for_customer, 
+        get_num_item_id: data.get_num_item_id,
+        state: 'waiting'
+      };
+      initData[label].get_num_item_data[data.get_num] = getnumObj;
+    }
+    function reCntWaitting(label, num, state){
+      
+      let obj = initData[label].get_num_item_data[num];
+      let getnumObj={
+        called_time: '', 
+        for_customer: true, 
+        get_num_item_id: '0',
+        state: ''
+      };
+      if(!obj){
+        getnumObj.state = state;
+      }else{
+        getnumObj.called_time = obj.called_time;
+        getnumObj.for_customer = obj.for_customer;
+        getnumObj.get_num_item_id = obj.get_num_item_id;
+        if(state === 'waiting'){
+          //getnumObj.called_time = new Date().getTime();
+          getnumObj.called_time = '';
+        }
+        getnumObj.state = state;
+      }
+      initData[label].get_num_item_data[num] = getnumObj;
+      let usergetnum = userData[`clientId${label}`].getnum;
+
+      if((usergetnum!== null) && (initData[label].get_num_item_data[usergetnum].state === "waiting")){
+        let cnt = countWaiting(initData[label].get_num_item_data, usergetnum);
+        // const displayNow = document.getElementById(`get_num_${label}`);
+        const displayLess = document.getElementById(`waiting_${label}`);
+        displayLess.textContent = cnt;
+      }
+    }
+
+    //------------------------------------
+    //server action='update'.
+    //------------------------------------
     function updateNumUI(num, label){
       const curr_num = document.getElementById(`curr_num_${label}`);
       const waiting = document.getElementById(`waiting_${label}`);
       const nowCurrNum = Number(num || 0);
-      curr_num.textContent = nowCurrNum;
+      curr_num.textContent = `${label}`+nowCurrNum;
 
       initData[label].curr_num = nowCurrNum;
+
+      let currdata = initData[label].get_num_item_data[num];
+      let getnumObj={
+        called_time: new Date().getTime(), 
+        for_customer: true, 
+        get_num_item_id: '0',
+        state: 'called'
+      };
+      if(currdata){
+        getnumObj.for_customer = currdata.for_customer;
+        getnumObj.get_num_item_id = currdata.get_num_item_id;
+      }
+      initData[label].get_num_item_data[num]=getnumObj;
+
       console.log(`clientId${label}`+ ' '+ userData[`clientId${label}`].getnum);
       if(userData[`clientId${label}`].getnum !== null){
         const displayLess = document.getElementById(`waiting_${label}`);
-        let less = userData[`clientId${label}`].getnum - nowCurrNum;
+        /* let less = userData[`clientId${label}`].getnum - nowCurrNum;
         if(less < 0){
           less = 0;
-        }
-        displayLess.textContent = less;
-      }
-      if(nowCurrNum >= userData[`clientId${label}`].getnum){
-        let btn = document.getElementById(`btn_${label}`);
-        if(btn.disabled === true){
-          btn.disabled = false;
-          btn.textContent = '取號';
-          if(btn.classList.contains('disabled')){
-            btn.classList.remove("disabled");
+        } */
+        let less = countWaiting(initData[label].get_num_item_data, userData[`clientId${label}`].getnum);
+        let key = userData[`clientId${label}`].getnum.toString();  
+        let userState = initData[label].get_num_item_data[key];
+        if(userState.state === 'waiting'){
+          waiting.textContent = less;
+        }else{
+          waiting.textContent = 0;
+          let btn = document.getElementById(`btn_${label}`);
+          if(btn.disabled === true){
+            btn.disabled = false;
+            btn.textContent = '取號';
+            if(btn.classList.contains('disabled')){
+              btn.classList.remove("disabled");
+            }
           }
         }
       }
@@ -1111,27 +1265,27 @@
 
     //-----------------------------------------------------------------------
     // 啟動事件：儲存時間
-    function startEvent(now) {
-        console.log("事件啟動時間：" + now.toLocaleTimeString());
-        checkIfPassed10Minutes(now);
-    }
-    // 檢查是否已經超過10分鐘
-    function checkIfPassed10Minutes(eventTime) {
-        const interval = setInterval(() => {
-        const now = new Date();
-        const elapsed = now - eventTime;
+    // function startEvent(now) {
+    //     console.log("事件啟動時間：" + now.toLocaleTimeString());
+    //     checkIfPassed10Minutes(now);
+    // }
+    // // 檢查是否已經超過10分鐘
+    // function checkIfPassed10Minutes(eventTime) {
+    //     const interval = setInterval(() => {
+    //     const now = new Date();
+    //     const elapsed = now - eventTime;
 
-        if (elapsed >= defTime) {            
-            clearInterval(interval);
-            proceedToNextStep();
-        }
-        }, 10000); // 每10秒檢查一次
-    }
-    // 超過10分鐘後要執行的動作
-    function proceedToNextStep() {
-        console.log("已超過10分鐘，執行下一步！");
-        resetButtonMode();
-    }
+    //     if (elapsed >= defTime) {            
+    //         clearInterval(interval);
+    //         proceedToNextStep();
+    //     }
+    //     }, 10000); // 每10秒檢查一次
+    // }
+    // // 超過10分鐘後要執行的動作
+    // function proceedToNextStep() {
+    //     console.log("已超過10分鐘，執行下一步！");
+    //     resetButtonMode();
+    // }
     function resetButtonMode(){
         const btnGetNumA = document.getElementById(`btn_A`);
         const btnGetNumB = document.getElementById(`btn_B`);
@@ -1151,8 +1305,10 @@
     function popMsg(label){
       let modalbox = document.getElementById('modalOverlay');
       let mTitle = document.getElementById('mTitle');
-      const caller_name = document.getElementById(`caller_name_${label}`);
-      mTitle.textContent = caller_name.textContent;
+      /* const caller_name = document.getElementById(`caller_name_${label}`);
+      mTitle.textContent = caller_name.textContent; */
+
+      mTitle.textContent =initData[label].caller_name;
       if(!modalbox.classList.contains('active')){
         modalbox.classList.add('active');
       }
@@ -1164,7 +1320,11 @@
       }
     }
 
-
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            window.location.reload();
+        }
+    });
   </script>
 </body>
 </html>

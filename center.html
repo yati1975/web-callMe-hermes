@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="version" content="1.0.6">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="viewport" charset="UTF-8" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=0">
+
+  <meta name="version" content="1.0.8">
   <script src="./js/crypto-js.min.js"></script>
   <script src="./js/localforage.min.js"></script>
   <script src="./WebSocket_lower.js"></script>  
   <title>叫號系統</title>
   <link rel="icon" type="image/png" sizes="32x32" href="./images/web32x32.png"> 
-  <style>
+	 <style>
 		body {
 			margin: 0;
 			border: 0;
@@ -25,7 +26,7 @@
 			/* height: calc(var(--vh, 1vh) * 100); */
 
 			display: flex; /* 將 body 設置為 Flex 容器 */
-    		flex-direction: column; /* 讓子元素垂直排列 */
+    	flex-direction: column; /* 讓子元素垂直排列 */
 			min-height: 100vh; /* 確保 body 至少佔滿視窗高度，dvh 處理行動裝置更好 */
 
 			/* 關閉點擊時的黑色閃爍 */
@@ -43,7 +44,7 @@
 			justify-content: center;
 			flex-grow: 1;
 			height: 45vh;
-			overflow-y: hidden;
+			overflow: hidden;
 		}
 
 		.background {
@@ -59,22 +60,31 @@
 			list-style-type: none;
 			padding-left: 0;
 			margin: 0;
-			display: flex;
+			/* display: flex;
 			flex-wrap: wrap;
-			justify-content: center;
+			justify-content: center; */
 			min-height: 5.5vh;
 			overflow-y: hidden;
+
+			display: grid;
+			overflow: visible;
 		}
 
 		.content {
 			/* max-height: 16.4vh; */
 			max-height: 100%;
 			justify-content: flex-start;
+			justify-items: center;
+    		grid-template-columns: repeat(5, 1fr);
 		}
 
 		.content2 {
 			/* max-height: 10.9vh; */
 			max-height: 100%;
+			justify-content: center;
+			justify-items: center;
+   		grid-template-columns: repeat(3, 20%);
+			gap: 0 3vw;
 		}
 
 		ol li {
@@ -84,7 +94,8 @@
 			margin: 1vw 1vw;
 			color: rgb(0, 0, 0);
 			font-size: 2.8vh;
-			width: 6.8vh;
+			/* width: 6.8vh; */
+			width: 70%;
 
 			max-height: 3.3vh;
 			opacity: 1;
@@ -115,6 +126,7 @@
 		.content2 li {
 			border: 1px solid rgb(0, 0, 0);
 			color: rgb(0, 0, 0);
+			margin: 1vw 5vw;
 		}
 
 		h1 {
@@ -122,6 +134,13 @@
 			font-size: 3.5vh;
 			line-height: 5vh;
 			margin: 1vh 0;
+		}
+
+		h1 small {
+			font-weight: lighter;
+			font-family: sans-serif, monospace, serif;
+			font-size: 2.2vh;
+			/* letter-spacing: 6px; */
 		}
 
 		h2 {
@@ -137,27 +156,29 @@
 			/* padding: 1dvh 0; */
 			margin-top: auto;
 			width: 100%;
-			height: 10vh;
+			/* height: 10vh; */
+			position: absolute;
+    		bottom: 0;
 		}
 
 		footer font {
 			color: #000000;
-			font-size: 1.4vh;
+			font-size: 1.5vh;
 			width: 100%;
 			box-sizing: border-box;
 			line-height: 2.3vh;
 			display: flex;
 			justify-content: center;
-			align-items: center;
+			align-items: flex-end;
 			text-align: left;
 			letter-spacing: 0.3vw;
-			height: inherit;
+			height: calc(100% - 1px);
+			margin: 1.5vh 0;
 		}
-
 
 		hr {
 			border: none;
-    		border-top: 0.1vh solid #ccc;
+    		border-top: 0.1vmax solid #cccccca1;
 		}
 
 		footer hr,
@@ -166,28 +187,22 @@
 		}
 
 		footer hr {
-			margin: 0;
+			/* margin: 0; */
 		}
 
 		#dynamic-content-area {
 			height: 90vh;
+			overflow: hidden;
 		}
 
 		#ver {
 			right: 0.5vw;
 			font-size: 1vw;
 			color: rgba(0, 0, 0, 0.6);
-    	position: absolute;
+    	position: fixed;
 		}
-		/* #ver {
-			font-size: 0.9vh;
-    	right: 5px;
-			top: 1vh;
-			color: rgba(0, 0, 0, 0.6);
-    	position: absolute;
-    }  */
 		@supports (height: 100dvh) {
-				body {
+			body {
 				min-height: 100dvh;
 			}
 
@@ -210,13 +225,14 @@
 
 			.content2 {
 				/* max-height: 10.9dvh; */
+				/* grid-template-columns: repeat(3, 13dvh); */
 			}
 
 			ol li {
 				padding: 0.5dvh 1dvh;
 				border-radius: 1dvh;
 				font-size: 2.8dvh;
-				width: 6.8dvh;
+				/* width: 6.8dvh; */
 
 				max-height: 3.3dvh;
 			}
@@ -227,6 +243,10 @@
 				margin: 1dvh 0;
 			}
 
+			h1 small {
+				font-size: 2.2dvh;
+			}
+
 			h2 {
 				font-size: 2.2dvh;
 				margin: 0.5dvh 0 0.5dvh 1dvh;
@@ -234,12 +254,13 @@
 
 			footer {
 				/* padding: 1dvh 0; */
-				height: 10dvh;
+				/* height: 10dvh; */
 			}
 
 			footer font {
-				font-size: 1.4dvh;
+				font-size: 1.5dvh;
 				line-height: 2.3dvh;
+				margin: 1.5dvh 0;
 			}
 
 			#dynamic-content-area {
@@ -279,6 +300,7 @@
 
 			.content2 {
 				/* max-height: 10.9vw; */
+				/* grid-template-columns: repeat(3, 13vw); */
 			}
 
 			ol li {
@@ -286,15 +308,23 @@
 				border-radius: 1vw;
 				margin: 1vh 1vh;
 				font-size: 2.8vw;
-				width: 5.8vw;
+				/* width: 5.8vw; */
 
 				max-height: 3.3vw;
+			}
+
+			.content2 li {
+				margin: 1vh 5vh;
 			}
 
 			h1 {
 				font-size: 3.5vw;
 				line-height: 5vh;
 				margin: 2vw 0;
+			}
+
+			h1 small {
+				font-size: 2.2vw;
 			}
 
 			h2 {
@@ -306,31 +336,32 @@
 			footer {
 				/* padding: 1dvh 0; */
 				width: 100%;
-				height: 15dvh;
+				/* height: 15dvh; */
 				/* height: auto; */
+				background: #f2f2f2;
 			}
 
 			footer font {
-				font-size: 1.4vw;
+				font-size: 1.5vw;
 				line-height: 2vw;
 				letter-spacing: 1vh;
+				margin: 1.5vh 0;
 			}
 
 			.group-hr {
-				width: 1px;
+				width: 0px;
 
 				border: none;
-    			border-right: 0.1vh solid #ccc;
+    			border-right: 0.1vmax solid #cccccca1;
+				/* border-left: 0.1vh solid #cccccca1; */
 			}
 
 			#dynamic-content-area {
 				/* height: auto; */
 				display: flex;
-				height: 85dvh;
+				height: 90vh;
 			}
 		}
-
-
 	 </style>
 </head>
 <body>
@@ -338,28 +369,32 @@
 	<template id="section-template">
 		<div class="container">
 			<div class="background">
-				<h1 id="caller_name_A"></h1>
+				<h1>鞋履 <small>SHOES (A)</small></h1>
 				<h2>請下列號碼入場</h2>
-				<hr style="border:none; border-top: 1px solid #ccc;"></hr>
+				<hr></hr>
 				<ol class="content">
+					<li>A98</li><li>A99</li><li>A100</li><li>A101</li><li>A102</li>
+					<li>A103</li><li>A104</li><li>A105</li><li>A106</li><li>A107</li>
 				</ol>
 				<h2>即將入場</h2>
-				<hr style="border:none; border-top: 1px solid #ccc;"></hr>
+				<hr></hr>
 				<ol class="content2">
+					<li>A98</li><li>A99</li><li>A100</li><li>A101</li><li>A102</li>
+					<li>A103</li><li>A104</li><li>A105</li><li>A106</li><li>A107</li>
 				</ol>
 			</div>
 		</div>
 		<hr class="group-hr"></hr>
-	</template>	
+	</template>
+	
 	<footer>
 		<hr></hr>
 		<font>
-			| 每組號碼最多可供兩位貴賓一同使用，每次入場時間為 10 分鐘<br>
-			| 一次限抽一區號碼，取號後請間隔 10 分鐘再抽另一區.<br>
-			| 若過號，請於現場過號排隊區等候，後續將由同仁協助安排入場
+			| 每組號碼最多可供兩位貴賓一同使用，每次入場時間為10分鐘.<br>
+			| 若過號，請於現場過號排隊區等候，將由同仁協助安排入場.
 		</font>
 		<div id="ver">ver.0.0.1</div>
-	</footer>  
+	</footer> 
   <script>
     // let initData={
     //     caller_id: null,								// 叫號機 id
@@ -382,9 +417,8 @@
     let wsA, wsB;
 		const maxUpdateQueue = 6;
 		const maxCurrentQueue = 15;
-    const maxFlapoutTime = 30000;	//30sec.
+    const maxFlapoutTime = 60000;	//30sec.
 		const maxSection = 2;
-    const defTime = 600000;
 		const reflashTime = 30000; //30sec.
 
     let initData={};
@@ -404,7 +438,6 @@
     };
     let nowUserGetNumTime=null;
 		let countSection=0;
-    //const defTime = 1000*60;
     const versionMeta = document.querySelector('meta[name="version"]');
     const version = versionMeta ? versionMeta.getAttribute('content') : '未知版本';
     document.getElementById('ver').innerText = "ver."+version;
@@ -415,6 +448,7 @@
     const clientIdB = urlParams.get('userB') || 'clientB';
 
     window.onload = function () {
+			initSectionTemplate('A','B')
       wsA = createWebSocket(clientIdA, 'A');
       wsB = createWebSocket(clientIdB, 'B');
     };
@@ -563,8 +597,69 @@
 			if(data.action === 'get_num_info' && data.result === 'OK'){
 				getNumInfoUI(data,label);
 			}
-
+			if(data.action === 'remove_number' && data.result === 'OK'){
+				getRemoveNum(data,label);
+			}
     }
+		function initSectionTemplate(labelA,labelB){
+			const template = document.getElementById('section-template');
+			const dynamicContentArea = document.getElementById('dynamic-content-area');
+
+				const sectionsToGenerate = [
+					{
+						id: labelA,
+						title: '', 
+						title2: '',
+						currentQueue: [],
+						upcomingQueue:[]
+					},
+					{
+						id: labelB,
+						title: '', 
+						title2: '',
+						currentQueue: [],
+						upcomingQueue:[]
+					}
+				];
+				countSection=0;
+				sectionsToGenerate.forEach(function (data, index) {
+						const clone = template.content.cloneNode(true);
+						const container = clone.querySelector('.container');
+						container.id = `container-${data.id}`;
+
+						let titleArr = data.title.split(' ');
+						const h1 = clone.querySelector('h1');
+        		const small = h1.querySelector('small');
+
+						if (h1) {
+							// 將 title 設定為 h1 的文字內容
+							h1.childNodes[0].nodeValue = data.title + ' ';
+						}
+
+						if (small) {
+							// 將 title2 設定為 small 的文字內容
+							// small.textContent = data.title2;
+							small.innerHTML = data.title2;
+						}
+						const currentQueueOl = clone.querySelector('ol.content');
+						if (currentQueueOl) {
+								currentQueueOl.innerHTML = data.currentQueue.map(item => `<li>${item}</li>`).join('');
+						}
+
+						const upcomingQueueOl = clone.querySelector('ol.content2');
+						if (upcomingQueueOl) {
+								upcomingQueueOl.innerHTML = data.upcomingQueue.map(item => `<li>${item}</li>`).join('');
+						}
+						dynamicContentArea.appendChild(clone);
+						countSection++;
+				});
+				if(countSection=== maxSection){
+					const lastGroupHr = document.querySelector('.group-hr:last-child');
+					if (lastGroupHr) {
+						lastGroupHr.parentNode.removeChild(lastGroupHr);
+					}
+				}
+		}
     function initUI(data, label){
       console.log(data);
       initData[label]=data;
@@ -578,7 +673,7 @@
           timestamp: null,
           state: null
         };
-        objItem.num = key;
+        objItem.num = `${label}`+key;
         objItem.timestamp = data.get_num_item_data[key].called_time;
         objItem.state = data.get_num_item_data[key].state;
 
@@ -619,32 +714,81 @@
             tmpUpcomingQueue.push(obj.num);
           }
         }
-				const template = document.getElementById('section-template');
-				const dynamicContentArea = document.getElementById('dynamic-content-area');
 				// 初始化
+      let callername = null;
+			let storename = null;
+			let storenameEx = '';
+			storename = data.caller_name;
+      if(data.caller_name.indexOf(';;') !== -1){
+          let str2=data.caller_name.split(';;');
+          storename = str2[0];
+          callername = str2[1];
+      }         
+      if(callername !== null){
+        storename = storename+' ['+callername+']';  
+      }else{
+        
+        let storeArr = storename.split(' ');
+        if(storeArr.length>1){
+          storename = storeArr[0];
+          storenameEx = storeArr[1]+' ('+`${label}`+')';
+        }
+      }
+
+
 				const sectionsToGenerate = [
 					{
 						id: label,
-						title: data.caller_name, 
+						title: storename, 
+						title2: storenameEx,
 						currentQueue: tmpCurrentQueue,
 						upcomingQueue:tmpUpcomingQueue
 					}
 				];
 				countSection++;
+				const containerToRemove = document.getElementById(`container-${label}`);
+				if (containerToRemove) {
+					const myList1 = document.querySelector(`#container-${label} ${'.content'}`);
+					if(myList1){
+						myList1.innerHTML="";
+					}
+					const myList2 = document.querySelector(`#container-${label} ${'.content2'}`);
+					if(myList2){
+						myList2.innerHTML="";
+					}
+				}
+
 				sectionsToGenerate.forEach(function (data, index) {
-						const clone = template.content.cloneNode(true);
-						const container = clone.querySelector('.container');
-						container.id = `container-${data.id}`;
+						// const clone = template.content.cloneNode(true);
+						// const container = clone.querySelector('.container');
+						// container.id = `container-${data.id}`;
+						const container = document.getElementById(`container-${data.id}`);
 
-						const h1 = clone.querySelector('h1');
-						if (h1) h1.textContent = data.title;
+						let titleArr = data.title.split(' ');
+						// const h1 = clone.querySelector('h1');
+        		// const small = h1.querySelector('small');
+						const h1 = container.querySelector('h1');
+        		const small = h1.querySelector('small');
 
-						const currentQueueOl = clone.querySelector('ol.content');
+						if (h1) {
+							// 將 title 設定為 h1 的文字內容
+							h1.childNodes[0].nodeValue = data.title + ' ';
+						}
+
+						if (small) {
+							// 將 title2 設定為 small 的文字內容
+							// small.textContent = data.title2;
+							small.innerHTML = data.title2;
+						}
+
+						
+
+						const currentQueueOl = container.querySelector('ol.content');
 						if (currentQueueOl) {
 								currentQueueOl.innerHTML = data.currentQueue.map(item => `<li>${item}</li>`).join('');
 						}
 
-						const upcomingQueueOl = clone.querySelector('ol.content2');
+						const upcomingQueueOl = container.querySelector('ol.content2');
 						if (upcomingQueueOl) {
 								upcomingQueueOl.innerHTML = data.upcomingQueue.map(item => `<li>${item}</li>`).join('');
 						}
@@ -657,14 +801,14 @@
 						// 	}
 						// }
 
-						dynamicContentArea.appendChild(clone);
+						//dynamicContentArea.appendChild(container);
 				});
-				if(countSection=== maxSection){
-					const lastGroupHr = document.querySelector('.group-hr:last-child');
-					if (lastGroupHr) {
-						lastGroupHr.parentNode.removeChild(lastGroupHr);
-					}
-				}	
+				// if(countSection=== maxSection){
+				// 	const lastGroupHr = document.querySelector('.group-hr:last-child');
+				// 	if (lastGroupHr) {
+				// 		lastGroupHr.parentNode.removeChild(lastGroupHr);
+				// 	}
+				// }	
 				if(tmpCurrentQueueFull.length> 0){
 					tmpCurrentQueueFull.forEach(obj=>{
 						let timeout = maxFlapoutTime - (now - obj.timestamp);
@@ -693,7 +837,7 @@
           timestamp: null,
           state: null
         };
-        objItem.num = key;
+        objItem.num = `${label}`+key;
         objItem.timestamp = data.get_num_item_data[key].called_time;
         objItem.state = data.get_num_item_data[key].state;
 				
@@ -757,7 +901,7 @@
 			}
 			
 			let objItem={
-				num: num.toString(),
+				num: `${label}`+num.toString(),
 				timestamp: null,
 				state: 'waiting'
 			};
@@ -772,7 +916,7 @@
 			}
 			
 			let objItem={
-				num: num.toString(),
+				num: `${label}`+num.toString(),
 				timestamp: null,
 				state: 'waiting'
 			};
@@ -780,7 +924,7 @@
 			updateUpNumUI(label);
     }		
     function updateCancelGetNumUI(data, label) {
-			let num = data.cancel_num;
+			let num = `${label}`+data.cancel_num;
       let popIdx = userData[label].updateQueue.findIndex(item => item.num === num);
 			if(popIdx!== -1){
 				userData[label].updateQueue.splice(popIdx,1);		
@@ -793,9 +937,9 @@
       
 			updateUpNumUI(label);
     }			
-    function updateNumUI(num, label){
+    function updateNumUI(numIn, label){
 			//action: 'update'.
-
+			let num = `${label}`+numIn;
       let popIdx = userData[label].updateQueue.findIndex(item => item.num === num);
 			if(popIdx!== -1){
 				userData[label].updateQueue.splice(popIdx,1);		
@@ -838,6 +982,19 @@
       //叫號大于15, 移除第一位.
 			updateUpNumUI(label);
     }
+		function getRemoveNum(data, label){
+			let num = `${label}`+data.remove_num;
+      let popIdx = userData[label].currQueue.findIndex(item => item.num === num);
+			if(popIdx!== -1){
+				userData[label].currQueue.splice(popIdx,1);		
+				removeListItem(label,'.content',num);
+			}else{
+				console.warn('getRemoveNum '+num+' not fond.');
+				//console.warn(userData[label].updateQueue);
+			}
+		}
+
+
 		function updateUpNumUI(label){
       //補上最近取號.
 			let tempUpdateQueue=[];
@@ -1081,7 +1238,7 @@
 
                 // 如果需要，進行排序
                 if (shouldSort) {
-										sortListItems(`#container-${containerId} ${listClass}`);
+                    sortListItems(`#container-${containerId} ${listClass}`);
                 }
             }			
   </script>
