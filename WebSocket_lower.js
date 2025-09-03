@@ -116,6 +116,8 @@ WebSocketFactory.prototype._connect = function() {
         for (var i = 0; i < self._callbacks.close.length; i++) {
             self._callbacks.close[i]();
         }
+
+        self.removeAllEventListeners();
     };
 };
 
@@ -244,6 +246,14 @@ WebSocketFactory.prototype.removeEventListener = function(type, callback) {
         }
     } else {
         console.error('removeEventListener 事件類型錯誤: ' + type);
+    }
+};
+
+WebSocketFactory.prototype.removeAllEventListeners = function() {
+    for (var type in this._callbacks) {
+        if (this._callbacks.hasOwnProperty(type)) {
+            this._callbacks[type] = [];
+        }
     }
 };
 
