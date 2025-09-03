@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="version" content="1.0.5">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>絲巾 SILK (B) 入場清單</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="./images/web32x32.png">
+    <script src="./js/crypto-js.min.js"></script>
+    <script src="./js/localforage.min.js"></script>
+    <script src="./WebSocket_lower.js"></script>
+    <style>
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000; /* 超出黑邊 */
+        }
+        #app-root {
+            /* 設定為我 2160x3840 基準設計稿 */
+            width: 576px;
+            height: 1024px;
+            margin: 0;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(1); /* scale 後面會自動算*/
+            background: #f2f2f2;
+            box-shadow: 0 0 48px #0005;
+            display: flex;              /* 這行很重要 */
+            flex-direction: column;     /* 這行很重要 */
+        }
+        body {
+            font-family: Arial, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+            background: #f2f2f2;
+            color: #000000;
+            margin: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        /* 語言選單區 */
+        .dropdown { position: fixed; right: 2vw; top: 12px; z-index: 100; }
+        .dropdown-button-area { display: flex; flex-direction: row; align-items: center; justify-content: flex-end;}
+        button.dropdown-button {
+            background: none;
+            border: none; padding: 0; margin-right: 5px;
+            cursor: pointer;
+        }
+        button.dropdown-button img { width: 24px; height: 24px;}
+        .dropdown-button-area p { color: white; font-size: 1em; margin: 0 0 0 2px;}
+        .dropdown-content { 
+            display: none; position: absolute; background-color: #13bbafd8; box-shadow: 0 8px 16px #0003;
+            min-width:120px; z-index:999; right: 0; top: 36px; border-radius: 7px;
+        }
+        .dropdown-content p {text-align:center;}
+        .dropdown-content-form { padding: 5px; text-align: center;}
+        .language-option { margin:6px 0; cursor:pointer;}
+        .language-option input[type="radio"] { display: none;}
+        .custom-radio {width: 16px; height: 16px; border:1.5px solid #08c; border-radius: 3px; display:inline-block; margin-right:10px; vertical-align: middle;}
+        .language-option input[type="radio"]:checked + .custom-radio {background:#08c;}
+        .language-option input[type="radio"]:checked + .custom-radio:before {content:'✔'; color:#f2f2f2; font-size:13px; margin-left:2px;}
+        .show { display: block; }
+        /* 主要內容 */
+        .main-title {
+            margin: 39px 0 19px 0; font-size:2.1em; font-weight:bold;
+            letter-spacing:2px; text-align: center; color: #000000;
+        }
+        .section { width: 96vw; max-width: 500px; margin: 0 auto 0 auto;}
+        .section-title { margin:10px 0 12px 0; font-size:1.5em; font-weight: bold; color: #000000; border-bottom: 1.5px solid #E9E9E9; letter-spacing: 0.32em;}
+        .number-blocks {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);   /* 一行三個 */
+            gap: 12px 23px;                          /* 行間距30px，列間距23px，可據截圖調整 */
+            justify-items: center;
+            align-items: flex-start;
+        }
+        .num-orange, .num-white {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2em;
+            min-width: 120px;     /* ← 增加寬度 */
+            min-height: 65px;
+            width: 140px;      /* 固定寬度 */
+            height: 80px;      /* 固定高度 */
+            border-radius: 16px;
+            padding: 20px 22px;   /* ← 左右內距也可微調更大 */
+            font-weight: 700;
+            letter-spacing: 2px;
+            box-sizing: border-box;
+        }
+
+        .num-orange {
+            background: #FFB182;
+            color: #000000;
+            border: none;
+            box-shadow: 0 1px 7px #e6e6e6b1;
+        }
+        .num-white {
+            background: #f2f2f2;
+            color: #000000;
+            border: 1px solid #000000;
+        }
+
+        .note-area {
+            position: fixed;
+            left: -10%;
+            bottom: 0;
+            width: calc(100vw + 80px);  /* 或100%，都可 */
+            background: #f2f2f2;
+            color: #000000;
+            font-size: 1.17em;
+            padding: 0.8% 4.17% 2.6% 13.89%;
+            box-sizing: border-box;
+            border-radius: 0;
+            text-align: left;
+            z-index: 99;
+            border-top: 2px solid #E9E9E9;
+        }
+        .cn-title {
+            font-size: 1.4em;  /* 你原本 main-title 大小 */
+            font-weight: bold;
+            color: #000000;
+        }
+
+        .en-title {
+            font-size: 0.7em;  /* 比較小的大小 */
+            font-weight: 400;
+            margin-left: 8px;
+            color: #000000;
+            letter-spacing: 1px;
+        }
+
+
+        /* 動畫進場離場效果 */
+        .num-animate-enter {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .num-animate-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .num-animate-leave {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .num-animate-leave-active {
+            opacity: 0;
+            transform: translateY(-40px);
+        }
+        #calledList {
+            min-height: 140px; /* 保留兩行空白區域 */
+            box-sizing: border-box;
+        }
+        .waiting-title {
+            margin-top: 30px;
+        }
+        #version-display {
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            color: gray;
+            font-size: 0.6em;
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+        }
+        .footerdisp {text-align:center; margin-top:30px;}
+        #ver { color: #000000; font-size:0.94em;}
+
+    </style>
+</head>
+<body>
+    <div id="app-root">
+    <!-- 語言選單UI -->
+    <div id="version-display"></div>
+       
+    <!-- 主內容 -->
+    <div class="main-title">
+    <span class="cn-title">絲巾</span>
+    <span class="en-title">SILK (B)</span>
+    </div>
+    <div class="section">
+        <div class="section-title">請下列號碼入場</div>
+        <div class="number-blocks" id="calledList"></div>
+    </div>
+    <div class="section">
+        <div class="section-title waiting-title">即將入場</div>
+        <div class="number-blocks" id="waitingList"></div>
+    </div>
+
+
+<script>
+    let nextGetNum = null;
+
+    //==================== 團體叫號清單主邏輯 =====================
+    // 號碼編號的mapping (需根據服務端回傳資訊準備)
+    let num_mapping = {};
+    // 全域號碼資料狀態物件，key為號碼，value為狀態資料物件
+    let currentNumData = {};
+
+    // 用來記錄目前號碼排序，陣列元素為號碼字串
+    let currentQueue = [];
+
+    // 這兩個變數用來紀錄「目前叫號區」和「等待區」的最新HTML字串快取
+    let lastCalledHTML = '';
+    let lastWaitingHTML = '';
+    // 讀取<meta name="version">的content屬性
+    const versionMeta = document.querySelector('meta[name="version"]');
+    const versionStr = versionMeta ? versionMeta.getAttribute('content') : '未知版本';
+
+    // 顯示在右上角
+    const verDisplay = document.getElementById('version-display');
+    verDisplay.textContent = `ver ${versionStr}`;
+
+    function updateListWithAnimation(container, newNumbers, numClass) {
+        const existingElementsMap = new Map();
+        Array.from(container.children).forEach(child => {
+            // 去除前綴 A，取得純號碼字串當 key
+            const numText = child.textContent.replace('B', '').trim();
+            existingElementsMap.set(numText, child);
+        });
+
+        const toKeep = new Set();
+
+        // 處理新增號碼
+        newNumbers.forEach(num => {
+            if (existingElementsMap.has(num)) {
+                toKeep.add(num);
+            } else {
+                // 建立新 DOM 並添加入場動畫
+                const div = document.createElement('div');
+                div.className = numClass + ' num-animate-enter';
+                div.textContent = `B${num}`;
+                container.appendChild(div);
+
+                // 觸發入場動畫
+                setTimeout(() => {
+                    div.classList.add('num-animate-enter-active');
+                }, 10);
+
+                div.addEventListener('transitionend', () => {
+                    div.classList.remove('num-animate-enter', 'num-animate-enter-active');
+                });
+            }
+        });
+
+        // 處理被移除的號碼元素，離場動畫後刪除
+        existingElementsMap.forEach((el, num) => {
+            if (!toKeep.has(num)) {
+                el.classList.add('num-animate-leave');
+                setTimeout(() => {
+                    el.classList.add('num-animate-leave-active');
+                }, 10);
+                el.addEventListener('transitionend', () => {
+                    if (el.parentNode === container) {
+                        container.removeChild(el);
+                    }
+                });
+            }
+        });
+    }
+
+
+    // 將所有號碼依狀態呈現在叫號(黃底)和等待(白底)清單
+    function renderQueueList(get_num_item_data, queue) {
+        let calledNumbers = [], waitingNumbers = [];
+        const now = Date.now();
+
+        if (nextGetNum !== null) {
+            document.getElementById('calledList').innerHTML = '';
+            document.getElementById('waitingList').innerHTML = `<div class="num-white">B${nextGetNum}</div>`;
+            return;
+        }
+
+        let keysFromQueue = [];
+        if (queue && queue.length) {
+            keysFromQueue = queue.filter(k => k && k.trim() !== '');
+        }
+        let keysFromData = Object.keys(get_num_item_data || {});
+        let allKeys = Array.from(new Set([...keysFromQueue, ...keysFromData]));
+
+        allKeys = allKeys
+            .map(k => parseInt(k, 10))
+            .filter(k => !isNaN(k))
+            .sort((a, b) => a - b)
+            .map(k => String(k));
+
+        allKeys.forEach(key => {
+            let d = get_num_item_data[key];
+            if (!d || !d.state) return;
+
+            // 只顯示60秒內叫號的號碼
+            if (d.state.toLowerCase() === 'called') {
+                if (!d.called_time || (now - d.called_time > 60000)) {      //先設定成30秒，改成60秒
+                    return;
+                }
+            }
+
+            switch (d.state.toLowerCase()) {
+                case 'called':
+                    calledNumbers.push(key);
+                    break;
+                case 'waiting':
+                    waitingNumbers.push(key);
+                    break;
+            }
+        });
+
+        // 用新函式局部更新，用 class 標示樣式
+        updateListWithAnimation(document.getElementById('calledList'), calledNumbers, 'num-orange');
+        // updateListWithAnimation(document.getElementById('waitingList'), waitingNumbers, 'num-white');
+        updateListWithAnimation(document.getElementById('waitingList'), waitingNumbers.slice(0, 6), 'num-white');
+    }
+
+
+    // 新增一個定時器，一直重新渲染列表，自動剔除超時號碼
+    setInterval(() => {
+        renderQueueList(currentNumData, currentQueue);
+    }, 1000);
+
+
+
+
+
+    //==================== WebSocket 預設 =====================
+    let ws;
+    let reconnectTimer = null;
+    let clientId=null;
+    let urlParams = new URLSearchParams(window.location.search);
+    let username = urlParams.get("username");
+    if(username){ clientId = username.toLocaleLowerCase(); }
+    window.onload = function () {
+        
+        console.log("連 WebSocket...");
+
+        ws = createWebSocket();
+        // 版本
+        let versionMeta = document.querySelector('meta[name="version"]');
+        // document.getElementById('ver').innerText = "ver." + (versionMeta ? versionMeta.getAttribute('content') : '未知');
+    };
+
+    // 當有收到訊息時，重設 20 秒 timeout
+    function startReconnectTimer() {
+        if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+        }
+        reconnectTimer = setTimeout(() => {
+            console.warn("20秒內未收到封包，自動重連 WebSocket...");
+            if (ws) {
+                ws.close();
+            }
+            ws = createWebSocket(); // 重新建立連線
+        }, 20000); // 20秒
+    }
+
+    function createWebSocket() {
+        ws = new window.MyWebSocket('wss://cmb-caller-frontend-410240967190.asia-east1.run.app/');
+        ws.id = clientId;
+        ws.onopen = async () => {
+            // 身份登入
+            const data = `{"action": "login","vendor_id": "tawe","caller_id": "${clientId}","password":"user_get_num","uuid": ""}`;
+            ws.send(data);
+            startReconnectTimer(); //連接成功，馬上開始20秒計時
+        };
+        ws.onmessage = function(event) {
+            startReconnectTimer(); //連接成功，馬上開始20秒計時
+            try {
+                // 注意：你使用的是自訂 WebSocket 實作，event 就是資料本身，不是標準的 MessageEvent
+                const rawData = event;
+                // console.log("收到 rawData:", rawData);
+
+                // 只要收到 action 為 user_get_num，優先顯示 get_num 號碼在 waitingList 區塊
+                if (typeof rawData === 'object' && rawData !== null && !Array.isArray(rawData)) {
+                    if (
+                        (rawData.action === 'user_get_num' && typeof rawData.get_num !== 'undefined') ||
+                        (rawData.action === 'new_get_num' && typeof rawData.curr_num !== 'undefined')
+                    ) {
+                        // 根據 action 取得正確欄位
+                        let num = null;
+                        if (rawData.action === 'user_get_num') {
+                            num = rawData.get_num !== null && rawData.get_num !== '' ? String(rawData.get_num) : null;
+                        } else if (rawData.action === 'new_get_num') {
+                            num = rawData.curr_num !== null && rawData.curr_num !== '' ? String(rawData.curr_num) : null;
+                        }
+                        if (num) {
+                            // 將該號碼標記為 waiting 狀態
+                            currentNumData[num] = { state: 'waiting' };
+                            if (!currentQueue.includes(num)) currentQueue.push(num);
+                            renderQueueList(currentNumData, currentQueue);
+                        }
+                        return;
+                    }
+                }
+
+                else if (typeof rawData === "string") {
+                    try {
+                        var jsonData = JSON.parse(rawData);
+                        if (
+                            jsonData &&
+                            (
+                                (jsonData.action === "user_get_num" && typeof jsonData.get_num !== "undefined") ||
+                                (jsonData.action === "new_get_num" && typeof jsonData.curr_num !== "undefined")
+                            )
+                        ) {
+                            let num = null;
+                            if (jsonData.action === "user_get_num") {
+                                num = jsonData.get_num !== null && jsonData.get_num !== "" ? String(jsonData.get_num) : null;
+                            } else if (jsonData.action === "new_get_num") {
+                                num = jsonData.curr_num !== null && jsonData.curr_num !== "" ? String(jsonData.curr_num) : null;
+                            }
+                            if (num) {
+                                nextGetNum = num;
+                            } else {
+                                nextGetNum = null;
+                            }
+                            renderQueueList(currentNumData, currentQueue);
+                        }
+
+                    } catch (e) { /* 非json忽略 */ }
+                }
+
+                // 1. 若收到的是字串，可能是更新格式或 JSON 格式字串
+                if (typeof rawData === 'string' || rawData instanceof String) {
+                    // 判斷更新號碼格式例如："OK,v010j,14,update"
+                    let parts = rawData.split(',');
+                    if (parts.length === 4 && parts[3] === 'update') {
+                        let num = parts[2];
+                        nextGetNum = null;
+
+                        // 保持資料狀態同步，將該號碼設為 'waiting'（視需求可調成'called'）
+                        if (currentNumData[num]) {
+                            currentNumData[num].state = 'waiting';  // 如果你想加入叫號，改成 'called'
+                        } else {
+                            currentNumData[num] = { state: 'waiting' };
+                        }
+
+                        // 確保該號碼在隊列中，如沒在就加入
+                        if (!currentQueue.includes(num)) {
+                            currentQueue.push(num);
+                        }
+
+                        renderQueueList(currentNumData, currentQueue);
+                        console.log(`號碼 ${num} 新增至等待列表`);
+                        return;
+                    }
+
+                    // 嘗試解析 JSON 格式字串
+                    try {
+                        const jsonData = JSON.parse(rawData);
+                        if (jsonData && jsonData.action === 'login') {
+                            currentNumData = jsonData.get_num_item_data || {};
+                            // 拆解字串隊列成陣列格式
+                            if (jsonData.get_num_item_queue && Array.isArray(jsonData.get_num_item_queue)) {
+                                if (typeof jsonData.get_num_item_queue[0] === 'string') {
+                                    currentQueue = jsonData.get_num_item_queue[0].split(',').filter(k => k.trim() !== '');
+                                } else {
+                                    currentQueue = jsonData.get_num_item_queue.filter(k => k.trim() !== '');
+                                }
+                            } else {
+                                currentQueue = Object.keys(currentNumData);
+                            }
+                            nextGetNum = null;
+                            renderQueueList(currentNumData, currentQueue);
+                            if (jsonData.get_num_notes && jsonData.get_num_notes.trim() !== '') {
+                                document.getElementById('noteArea').innerHTML = jsonData.get_num_notes;
+                            }
+                            return;
+                        }
+                    } catch (e) {
+                        // 非 JSON 字串忽略
+                    }
+                }
+                // 2. 若收到的是物件格式（非陣列），例如 login 或其他操作
+                else if (typeof rawData === 'object' && rawData !== null && !Array.isArray(rawData)) {
+                    if (rawData.action === 'login') {
+                        currentNumData = rawData.get_num_item_data || {};
+                        if (rawData.get_num_item_queue && Array.isArray(rawData.get_num_item_queue)) {
+                            if (typeof rawData.get_num_item_queue[0] === 'string') {
+                                currentQueue = rawData.get_num_item_queue[0].split(',').filter(k => k.trim() !== '');
+                            } else {
+                                currentQueue = rawData.get_num_item_queue.filter(k => k.trim() !== '');
+                            }
+                        } else {
+                            currentQueue = Object.keys(currentNumData);
+                        }
+                        renderQueueList(currentNumData, currentQueue);
+                        if (rawData.get_num_notes && rawData.get_num_notes.trim() !== '') {
+                            document.getElementById('noteArea').innerHTML = rawData.get_num_notes;
+                        }
+                        return;
+                    }
+                    else if (rawData.action === 'remove_number' && rawData.result === 'OK') {
+                        let numToRemove = rawData.remove_num;
+                        nextGetNum = null;
+                        if (currentNumData && currentNumData.hasOwnProperty(numToRemove)) {
+                            delete currentNumData[numToRemove];
+                            currentQueue = currentQueue.filter(k => k !== numToRemove);
+                            renderQueueList(currentNumData, currentQueue);
+                            console.log(`號碼 ${numToRemove} 已移除並重新渲染`);
+                        }
+                        return;
+                    }
+                    else if (rawData.action === "cancel_get_num" && typeof rawData.cancel_num !== "undefined") {
+                        let numToCancel = String(rawData.cancel_num);
+                        nextGetNum = null;
+                        if (currentNumData && currentNumData.hasOwnProperty(numToCancel)) {
+                            delete currentNumData[numToCancel];
+                        }
+                        currentQueue = currentQueue.filter(k => k !== numToCancel);
+                        renderQueueList(currentNumData, currentQueue);
+                        console.log(`號碼 ${numToCancel} 已被取消 (cancel_get_num) 並已從畫面移除`);
+                        return;
+                    }
+                }
+                // 3. 若收到是陣列格式，表示是更新訊息，如 ["OK","v010j","6","update"]
+                else if (Array.isArray(rawData)) {
+                    if (rawData.length === 4 && rawData[3] === 'update') {
+                        let num = rawData[2];
+                        nextGetNum = null;
+                        // 在資料中標記為 called
+                        if (currentNumData[num]) {
+                            currentNumData[num].state = 'called';
+                            currentNumData[num].called_time = currentNumData[num].called_time || Date.now();
+                        } else {
+                            // currentNumData[num] = { state: 'called' };
+                            currentNumData[num] = { state: 'called', called_time: Date.now() };
+                        }
+
+                        if (!currentQueue.includes(num)) {
+                            currentQueue.push(num);
+                        }
+
+                        renderQueueList(currentNumData, currentQueue);
+                        console.log(`號碼 ${num} 標記為叫號狀態並渲染`);
+                        return;
+                    }
+                }
+
+                // 4. 其他訊息類型可按需求擴充
+
+            } catch (e) {
+                console.error("WebSocket onmessage 處理錯誤:", e);
+            }
+        };
+
+
+        // 其餘 onclose/onerror 維持不動...
+        return ws;
+    }
+    // setInterval(() => {
+    //     console.log("開始重連 WebSocket...");
+    //     if (ws) {
+    //         ws.close();  // 先關閉現有連線
+    //     }
+    //     ws = createWebSocket();  // 重新建立與設定新連線
+    // }, 20000);  // 10分鐘重連一次(600000)
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            location.reload();
+        }
+    });
+
+    function resizeAppArea() {
+        const ratioW = window.innerWidth  / 576;
+        const ratioH = window.innerHeight / 1024;
+        // 取較小的，避免內容溢出
+        const scale = Math.min(ratioW, ratioH);
+        const appRoot = document.getElementById('app-root');
+        appRoot.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+    window.addEventListener('resize', resizeAppArea);
+    window.addEventListener('DOMContentLoaded', resizeAppArea);
+</script>
+<div class="note-area" id="noteArea">
+    | 每組號碼最多可供兩位貴賓一同使用，每次入場時間為10分鐘.<br>
+    | 若過號，請於現場過號排隊區等候，將由同仁協助安排入場.
+</div>
+</div>
+    
+</body>
+</html>
