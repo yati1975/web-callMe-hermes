@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="version" content="1.0.12">
+  <!-- <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+	<script>eruda.init();</script>        -->
+
+  <script src="./js/crypto-js.min.js"></script>
+  <script src="./js/localforage.min.js"></script>
+  <script src="./js/common.js"></script>
+  <script src="./WebSocket_lower.js"></script> 
+	<script src="./js/appCore.js"></script>
+	<script src="./js/appStore.js"></script>
+	<script src="./js/wsHandlers.js"></script>  
+  <!-- 本機 -->
+  <!-- <script src="./js/secure-sign-x-dev.js"></script> -->
+  <!-- 線上 -->
+  <script src="./js/secure-sign-x-domain-web.js"></script> 
+  <title>取號系統</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="./images/web32x32.png"> 
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100%;
+      overflow: hidden; /* 整個頁面禁止滾動 */
+      background: #fff;
+      color: #222;
+      font-family:
+        "Noto Sans TC",
+        "Microsoft JhengHei",
+        "PingFang TC",
+        sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+
+    }
+
+    /* =========================
+       主容器
+    ========================= */
+
+    .queue-page {
+      width: 100%;
+      max-width: 430px;
+      height: 100dvh;
+      max-height: 100dvh;
+      padding: 12px 20px;
+      position: relative;
+      display: grid;
+
+      /*
+      * 標題
+      * Section A
+      * Section B
+      * Section C
+      * Notice
+      */
+      grid-template-rows:
+        auto
+        1fr
+        auto;
+      overflow: hidden;
+      justify-items: center;
+    }
+
+
+    /* =========================
+       頂部標題
+    ========================= */
+
+    .page-title {
+      margin: 0 0 4px;
+      padding-bottom: 6px;
+      text-align: center;
+      font-size: clamp(18px, 5vw, 24px);
+      font-weight: 300;
+      letter-spacing: 2px;
+      color: #666;
+      width: 100%;
+      border-bottom: 1px solid #e5e5e5;
+      flex-shrink: 0;
+    }
+
+    .queue-section {
+      width: 100%;
+      max-width: 430px;
+      /* height: 100dvh; */
+      max-height: 100dvh;
+      /* padding: 12px 20px; */
+      position: relative;
+      display: grid;
+      grid-template-rows:
+        1fr
+        1fr
+        1fr;
+      overflow: hidden;
+    }
+
+    /* =========================
+       取號區塊
+    ========================= */
+
+
+
+
+    .queue-item {
+      min-height: 0;
+      padding: clamp(8px, 2vh, 20px) 0;
+      border-bottom: 1px solid #e5e5e5;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .queue-item:last-of-type {
+      border-bottom: none;
+    }
+
+
+    /* =========================
+       類別名稱
+    ========================= */
+
+    .queue-name {
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: clamp(6px, 2vw, 12px);
+      margin-bottom: clamp(8px, 2vh, 18px);
+      white-space: nowrap;
+      max-width: 100%;
+    }
+
+    .queue-name .name-cn {
+      font-size: clamp(20px, 6vw, 28px);
+      font-weight: 300;
+      color: #222;
+    }
+
+    .queue-name .name-en {
+      font-size: clamp(15px, 4.5vw, 21px);
+      font-weight: 300;
+      color: #333;
+    }
+
+
+    /* =========================
+       取號按鈕
+    ========================= */
+    .queue-button-group {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 5vw;
+    }
+    .queue-label {
+      display: flex;           /* 🛠️ 1. 改為 flex 佈局 */
+      justify-content: center; /* 🛠️ 2. 水平置中 */
+      align-items: center;     /* 🛠️ 3. 垂直置中 */
+      width: min(150px, 45vw);
+      height: clamp(42px, 7vh, 56px);
+      margin: 0 auto clamp(8px, 2vh, 20px);
+      border-radius: 5px;
+      font-family: inherit;
+      font-size: clamp(20px, 6vw, 27px);
+      font-weight: 600;
+      /* cursor: pointer; */
+      flex-shrink: 0;
+      background: #ffad7b;
+      border: 1px solid #f39b67;
+      color: #111;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.15);
+      /* transition:
+        transform 0.1s ease,
+        opacity 0.1s ease; */
+      text-align: center;
+    }    
+    .queue-button {
+      display: block;
+      width: min(150px, 45vw);
+      height: clamp(42px, 7vh, 56px);
+      margin: 0 auto clamp(8px, 2vh, 20px);
+      border-radius: 5px;
+      font-family: inherit;
+      font-size: clamp(20px, 6vw, 27px);
+      /* font-weight: 600; */
+      cursor: pointer;
+      flex-shrink: 0;
+      transition:
+        transform 0.1s ease,
+        opacity 0.1s ease;
+    }
+
+    .queue-button:active {
+      transform: scale(0.97);
+    }
+
+    
+    /* 已經取號 / 不可取號 */
+
+    .queue-button.disabled {
+      background: #BDC3C8;
+      border: 1px solid #bec3c9;
+      color: #707070;
+      cursor: default;
+      pointer-events: none; 
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    
+
+    /* 可以取號 */
+    .queue-button.available {      
+      background: #dce5ed;
+      border: 1px solid #cbd6df;
+      color: black;
+      cursor: pointer;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+
+    /* =========================
+       底部資訊
+    ========================= */
+
+    .queue-info {
+      display: flex;
+
+      justify-content: center;
+      align-items: baseline;
+
+      width: 100%;
+
+      flex-shrink: 0;
+    }
+
+    .info-block {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 50%;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .info-label {
+      font-size: clamp(11px, 3.5vw, 16px);
+      font-weight: 300;
+
+      color: #333;
+
+      margin-right: 4px;
+    }
+
+    .info-value {
+      font-size: clamp(18px, 6vw, 26px);
+
+      font-weight: 300;
+
+      color: #222;
+    }
+
+
+    /* =========================
+       注意事項
+    ========================= */
+
+    .notice {
+      position: static;
+      width: 100%;
+      padding: 8px 0 0;
+      border-top: 1px solid #ddd;
+      font-size: clamp(8px, 2.5vw, 11px);
+      line-height: 1.5;
+      font-weight: 300;
+      color: #444;
+      overflow: hidden;
+    }
+
+    .notice p {
+      margin: 0;
+    }
+
+    /* 頁腳樣式 */
+    .footerLogoVer {
+      padding: 0;
+
+      width: 100%;
+
+      display: flex;
+
+      align-items: center;
+
+      flex-direction: column;
+    }
+
+    #ver {
+      font-size: 0.7rem;
+    }
+
+    /* 背景遮罩 */
+    .overlay {
+      display: none; /* 初始隱藏 */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5); 
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+    }
+    .overlay.active {
+        display: flex;
+    }
+    /* 浮動視窗樣式 */
+    .modal {
+      background-color: #f2f2f2;
+      position: relative;
+      padding: 20px;
+      width: 100%;
+      max-width: 500px;
+      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      display: flex;
+      justify-content: center;
+      min-height: 50vh;
+      align-items: center;
+    }
+    .modal-box {
+      display: grid;
+      position: relative;
+      width: 100%;
+      /* max-width: 300px; */
+      padding: 10px;
+      /* border-bottom: 1px solid #eee; */
+      box-sizing: border-box;
+      color: black;
+      height: auto;
+      /* min-height: 140px; */
+      /* font-size: 2rem; */
+    }
+    .modal-name {
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: clamp(6px, 3vw, 12px);
+      margin-bottom: clamp(15px, 5vh, 40px);
+      white-space: nowrap;
+      max-width: 100%;
+    }
+
+    .modal-name .modalname-cn {
+      font-size: clamp(20px, 9vw, 40px);
+      font-weight: 300;
+      color: #222;
+    }
+
+    .modal-name .modalname-en {
+      font-size: clamp(15px, 7vw, 30px);
+      font-weight: 100;
+      color: #333;
+    }    
+    .modal-msg {
+      font-size: clamp(15px, 7vw, 30px);
+      font-weight: 300;
+      color: black;
+    }
+    
+    /* 浮動視窗外部的關閉按鈕 */
+    .close-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      z-index: 1;          
+    }
+    .close-btn img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.3s ease;             
+    } 
+    .close-btn:hover {
+      opacity: 0.7; /* hover 效果，變透明一點 */
+    }
+
+    /* =========================
+       RWD
+    ========================= */
+
+    @media (max-width: 380px) {
+
+      .queue-page {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .queue-name {
+        gap: 5px;
+      }
+
+      .queue-button {
+        width: min(120px, 45vw);
+      }
+
+      .info-label {
+        font-size: 11px;
+      }
+
+      .info-value {
+        font-size: 19px;
+      }
+
+      .notice {
+        font-size: 8px;
+      }
+    }
+    @media (max-height: 600px) {
+
+      .queue-page {
+        padding-top: 6px;
+        padding-bottom: 6px;
+      }
+
+      .page-title {
+        margin: 2px 0;
+        padding-bottom: 4px;
+        font-size: 18px;
+      }
+
+      .queue-item {
+        padding: 4px 0;
+      }
+
+      .queue-name {
+        margin-bottom: 5px;
+      }
+
+      .queue-name .name-cn {
+        font-size: 20px;
+      }
+
+      .queue-name .name-en {
+        font-size: 15px;
+      }
+
+      .queue-button {
+        height: 38px;
+        margin-bottom: 5px;
+        font-size: 20px;
+      }
+
+      .info-label {
+        font-size: 10px;
+      }
+
+      .info-value {
+        font-size: 18px;
+      }
+
+      .notice {
+        font-size: 8px;
+        line-height: 1.3;
+      }
+    }
+    /* 橫版設計 */   
+    /* 橫版css待修 */
+    @media  (max-height: 568px)and (orientation: landscape){
+      .queue-page {
+        max-width: 100vw;
+      }
+      .queue-section {
+        width: 100%;
+        max-width: 90vw;
+        /* max-width: 430px; */
+        /* height: 100dvh; */
+        max-height: 100dvh;
+        /* padding: 12px 20px; */
+        position: relative;
+        display: grid;
+        /* grid-template-rows:*/
+        grid-template-columns:
+          1fr
+          1fr
+          1fr;
+        grid-template-rows:none;  
+        overflow: hidden;
+      }
+      .queue-button-group{
+        gap: 1vw;
+      }   
+      .queue-item {
+        border-right: 1px solid #e5e5e5;
+        border-bottom: none;
+        display: flex;
+        justify-content: space-evenly;
+      }   
+      .queue-item:last-of-type {
+        border-right: none;
+      }
+      .queue-label{
+        width: min(90px, 15vw);
+        height: clamp(42px, 7vh, 56px);
+        margin: 0 auto clamp(8px, 2vh, 20px);
+      }
+      .queue-button {
+        display: block;
+        width: min(90px, 15vw);
+        height: clamp(42px, 7vh, 56px);
+        margin: 0 auto clamp(8px, 2vh, 20px);
+      }
+      .queue-info {
+        display: flex;
+
+        justify-content: center;
+        align-items: baseline;
+
+        width: 100%;
+
+        flex-shrink: 0;
+      }
+      .info-block {
+        width: 48%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="queue-page">
+
+    <!-- 頁面標題 -->
+    <h1 class="page-title">
+      請點選取號 抽取號碼
+    </h1>
+
+    <div class="queue-section" id="sectionContainer">
+      <!--
+      <section class="queue-item">
+
+        <div class="queue-name">
+          <span class="name-cn" id="caller_name_A">鞋履</span>
+          <span class="name-en" id="caller_name_s_A" >Shoes</span>
+        </div>
+        <div class="queue-button-group">
+          <div class="queue-label" id="get_num_A"></div>
+          <button class="queue-button available" id="btn_A" onclick="getNumber(this,'A')">
+            取號
+          </button>
+        </div>
+
+        <div class="queue-info">
+
+          <div class="info-block">
+            <span class="info-label">目前服務號碼</span>
+            <span class="info-value" id="curr_num_A">---</span>
+          </div>
+
+          <div class="info-block">
+            <span class="info-label">等候組數</span>
+            <span class="info-value" id="waiting_A">---</span>
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      <section class="queue-item">
+
+        <div class="queue-name">
+          <span class="name-cn" id="caller_name_B">絲巾</span>
+          <span class="name-en" id="caller_name_s_B">Silk</span>
+        </div>
+        <div class="queue-button-group">
+          <div class="queue-label" id="get_num_B"></div>
+          <button class="queue-button available" id="btn_B" onclick="getNumber(this,'B')">
+            取號
+          </button>
+        </div>
+
+        <div class="queue-info">
+
+          <div class="info-block">
+            <span class="info-label">目前服務號碼</span>
+            <span class="info-value" id="curr_num_B">---</span>
+          </div>
+
+          <div class="info-block">
+            <span class="info-label">等候組數</span>
+            <span class="info-value" id="waiting_B">---</span>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <section class="queue-item">
+
+        <div class="queue-name">
+          <span class="name-cn" id="caller_name_C">飾品</span>
+          <span class="name-en" id="caller_name_s_C">Fashio ACC.</span>
+        </div>
+        <div class="queue-button-group">
+          <div class="queue-label" id="get_num_C"></div>
+          <button class="queue-button available" id="btn_C" onclick="getNumber(this,'C')">
+            取號
+          </button>
+        </div>
+
+        <div class="queue-info">
+
+          <div class="info-block">
+            <span class="info-label">目前服務號碼</span>
+            <span class="info-value" id="curr_num_C">---</span>
+          </div>
+
+          <div class="info-block">
+            <span class="info-label">等候組數</span>
+            <span class="info-value" id="waiting_C">---</span>
+          </div>
+
+        </div>
+
+      </section> -->
+      
+    </div>
+
+
+
+    <!-- =========================
+         注意事項
+    ========================= -->
+
+    <footer class="notice">
+
+      <p>
+        ｜ 每組號碼最多可供兩位貴賓一同使用。
+      </p>
+      <p>
+        ｜ 若過號，可重新抽取號碼或於現場過號排隊區等候。
+      </p>
+      <p>
+        ｜ 過號排隊區域將由同仁協助安排入場。
+      </p>      
+      <div class="footerLogoVer">
+      <!-- <img src="images/logo_mini.png"> -->
+        <div id="ver">ver.0.0.1</div>
+      </div> 
+    </footer>
+  </main>
+
+  <!-- </div> -->
+  <!-- 浮動視窗與背景遮罩 -->
+  <div class="overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="close-btn" onclick="closeModal()"> <img src="./images/close.png"> </div>
+      <div class = "modal-box">
+        <div class="modal-name">
+          <span class="modalname-cn" id="mTitle"></span>
+          <span class="modalname-en" id="mTitle_s"></span>
+        </div>        
+        <!-- <p id="mTitle"></p> -->
+        <div class="modal-msg" id="errorMsg">因人潮眾多 暫停取號<br>請稍後重試 </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // let initData={
+    //     caller_id: null,								// 叫號機 id
+    //     hardware: null,									// 有無實體取號機 (true/fasle).
+    //     caller_name: null, 
+    //     curr_num: null,                 // 目前號碼
+    //     support_get_num: null,          // 支援取號 (true/false)
+    //     last_get_num: null,             // 最後取號 (若不支援取號服務，此欄為"")
+    //     get_num_switch: null,           // 取號開關 ("on"/"off") (若不支援取號服務，此欄為"")
+    //     get_num_item_type:null,         // 取號項目型別 (若不支援"選擇取號項目", 此欄為"")
+    //     get_num_item_data: null,		    //(取號項目號碼資料)(用來取代 get_num_item_queue)
+    //     get_num_item_names: null, 	    // 取號項目名稱
+    //     get_num_item_queue: null,       // 取號項目號碼佇列
+    //     get_num_notes: null,            // 取號需知 (若不顯示取號需知，此欄設為"")(若不支援取號服務，此欄為"")
+    //     support_reserve_num: null,      // 支援到號保留 (true/false)(若不支援取號服務，此欄為false)
+    //     reserve_time_limit: null, 			//(到號保留期限)
+    //     reset_time:null,								//(重置時間)
+    //     uuid: null // 封包識別碼"support_get_num"(支援取號)
+    // };   
+    let wsList = {};
+    let initData = {};
+    let userData = {};
+		let wsHandler={};
+		let storeData={};   
+		const itemStatus={
+			NONE: 0,
+			NORMAL: 1,
+			CLICKED: 2,
+			CALLING: 3,
+			RESERVED: 4,
+			INVALID: 5,
+			UNRESERVE: 6,
+			REMOVE: 7  
+    };     
+    let userID = generateUserId();
+    //let nowUserGetNumTime=null;
+    let prefixData=[];
+    let webGetNumCheck = [];
+
+    const defTime = 600000;
+    //const defTime = 1000*60;
+    const versionMeta = document.querySelector('meta[name="version"]');
+    const version = versionMeta ? versionMeta.getAttribute('content') : '未知版本';
+    document.getElementById('ver').innerText = "ver."+version;
+    //document.querySelector('.container').classList.add('hidden');
+    const urlParams = new URLSearchParams(window.location.search);
+    const usersParam = urlParams.get('users'); // 例如 ?users=shoe,scarf,hat
+    //const clientIds = usersParam ? usersParam.split(',') : ['clientA','clientB','clientC']; 
+    const clientIds = usersParam ? usersParam.split(',') : ['v010j','v010m','v0138']; 
+    // 動態建立 section
+    const middleContainer = document.getElementById('sectionContainer');
+    clientIds.forEach((id, idx) => {
+      const label = String.fromCharCode(65 + idx); // A, B, C...
+      let section = addSection(label);
+      middleContainer.appendChild(section);
+      // 初始化 userData
+      userData[`clientId${label}`] = { getnum:null, timestamp:null, turn: null, itemId: null };
+    });
+    function addSection(label){
+      let queueSection = document.createElement('section');
+      queueSection.className = 'queue-item';
+      // 新增標題
+      const title = document.createElement("div");
+      title.className = 'queue-name';
+      const title_cn = document.createElement("span");
+      title_cn.className = 'name-cn';
+      title_cn.id = `caller_name_${label}`;
+      const title_en = document.createElement("span");
+      title_en.className = 'name-en';
+      title_en.id = `caller_name_s_${label}`;
+      title.appendChild(title_cn);
+      title.appendChild(title_en);
+      queueSection.appendChild(title);
+
+      const btnDisp = document.createElement("div");
+      btnDisp.className = "queue-button-group";
+      const queuelabel = document.createElement("div");
+      queuelabel.className = "queue-label";
+      queuelabel.id = `get_num_${label}`;;
+
+      const btn = document.createElement("button");
+      btn.className = "queue-button available"; // 💡 建議加上原本的 available class
+      btn.id = `btn_${label}`;
+      btn.textContent = '取號';
+      btn.locked = false;
+      btn.onclick = () =>getNumber(btn, `${label}`);
+      btnDisp.appendChild(queuelabel);
+      btnDisp.appendChild(btn);
+      queueSection.appendChild(btnDisp);
+
+      const info = document.createElement('div');
+      info.className = "queue-info";
+      const infoblock1 = document.createElement('div');
+      infoblock1.className="info-block";
+      const l11 = document.createElement('span');
+      l11.className="info-label";
+      l11.textContent = '目前服務號碼';
+      const l11val = document.createElement('span');
+      l11val.id = `curr_num_${label}`;
+      l11val.className="info-value";
+      l11val.textContent="---";
+      infoblock1.appendChild(l11);
+      infoblock1.appendChild(l11val);
+      info.appendChild(infoblock1);
+
+      const infoblock2 = document.createElement('div');
+      infoblock2.className="info-block";
+      const l21 = document.createElement('span');
+      l21.className="info-label";
+      l21.textContent = '等候組數';
+      const l21val = document.createElement('span');
+      l21val.id = `waiting_${label}`;
+      l21val.className="info-value";
+      l21val.textContent="---";
+      infoblock2.appendChild(l21);
+      infoblock2.appendChild(l21val);
+      info.appendChild(infoblock2);      
+      queueSection.appendChild(info);
+      return queueSection;
+    }
+
+    
+    // 取出 localforage 資料
+    function getDBata () {
+      try {
+        const db = localforage.createInstance({
+          name: 'callMe2',
+          storeName: 'data'
+        });
+
+        // 先取 UserID
+        db.getItem('UserID').then((data)=>{
+          if(data){
+            userID = data;
+          }else{
+            userID = generateUserId();  //產生新的
+          }
+        });
+
+        // 再取每個 clientId 的資料
+        Promise.all(clientIds.map(id => db.getItem(id))).then((dataList)=>{
+          dataList.forEach((data, idx)=>{
+            const label = String.fromCharCode(65 + idx); // A, B, C ...
+            if(data){
+              if(data.timestamp !== undefined && data.timestamp !== null){
+                userData[`clientId${label}`].timestamp = data.timestamp;
+                //userData[`clientId${label}`].timestamp = new Date(data.timestamp);
+              }
+              if(data.getnum !== undefined && data.getnum !== null){
+                userData[`clientId${label}`].getnum = data.getnum;
+              }
+              if(data.turn !== undefined && data.turn !== null){
+                userData[`clientId${label}`].turn = data.turn;
+              }
+              if(data.itemId !== undefined && data.itemId !== null){
+                userData[`clientId${label}`].itemId = data.itemId;
+              }                            
+            }
+          });
+
+          // 計算最新的 timestamp
+          let nowUserGetNumTime = null;
+          Object.values(userData).forEach(u=>{
+            if(u.timestamp && (!nowUserGetNumTime || u.timestamp > nowUserGetNumTime)){
+              nowUserGetNumTime = new Date(u.timestamp);
+            }
+          });
+
+          // 跨日檢查
+          if(nowUserGetNumTime){
+            let nt = new Date();
+            if(isCrossDayAndAfter4AM(nowUserGetNumTime, nt)){
+              clearData();
+            }
+          }
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    // 清除 localforage 資料
+    async function clearData() {
+      try {
+        const db = localforage.createInstance({
+          name: 'callMe2',
+          storeName: 'data'
+        });
+        let getNumData = { timestamp: null, getnum: null, turn: null, itemId: null };
+
+        // 清掉所有 clientIds
+        clientIds.forEach(id => db.setItem(id, getNumData));
+
+        //console.log('所有資料已清除');
+      } catch (err) {
+        console.error('清除資料失敗:', err);
+      }
+      // 重設 userData
+      Object.keys(userData).forEach(k=>{
+        userData[k].getnum = null;
+        userData[k].timestamp = null;
+        userData[k].turn = null;
+        userData[k].itemId = null;
+
+      });
+    }
+
+    function isCrossDayAndAfter4AM(startTime, now) {
+      const isCrossDay = now.toDateString() !== startTime.toDateString();
+      const fourAM = new Date();
+      fourAM.setHours(4, 0, 0, 0);
+      return isCrossDay && now.getTime() >= fourAM.getTime();
+    }
+      
+
+
+
+    window.onload = function () {
+      // wsA = createWebSocket(clientIdA, 'A');
+      // wsB = createWebSocket(clientIdB, 'B');
+      modifyMiddleContainer();
+      clientIds.forEach((id, idx) => {
+        const label = String.fromCharCode(65 + idx);
+				 // 1. 每個帳號建立自己的 Store
+				storeData[label] = new window.App.AppStore({id: id});
+				 // 2. 每個帳號建立自己的 Handler
+				wsHandler[label] = new window.App.WSHandlers({id: id, store:storeData[label]});
+				 // 3. 最後建立 WebSocket
+        wsList[label] = createWebSocket(id, label);
+      });
+
+      getDBata();
+    };
+    //✅ Step 1：先「標準化」你那種混合格式封包.
+    function normalizeMessage(data){
+
+        // MyWebSocketLow 有時回傳 array
+        if(Array.isArray(data)){
+            return {
+                type: data[data.length-1],
+                payload: data
+            };
+        }
+
+        // JSON 格式
+        if(typeof data === "object"){
+            return {
+                type: data.action,
+                payload: data
+            };
+        }
+
+        console.warn("Unknown WS message", data);
+        return null;
+    }
+    function createWebSocket(callerId, label) {
+      const ws = new window.MyWebSocketLow('wss://cmb-caller-frontend-410240967190.asia-east1.run.app/');
+      ws.id = callerId;
+
+      ws.onopen = () => {
+        //console.log(`[${label}] WebSocket 開啟`);
+        wsSendLogin(ws, callerId, 'user_get_num');
+        /*wsSendLogin(ws, callerId, password);*/
+        //sendGetNum(ws, callerId, label);
+      };
+
+      // ws.onmessage = (data) => {
+      //   //let data = event.data;
+      //   //console.log('[WebSocket 收到回傳資料]', data);
+
+      //   try {
+      //     //data = JSON.parse(data);
+      //     handleWebSocketMessage(data, label);
+      //   } catch (e) {
+      //     console.warn(`[${label}] 非 JSON 格式：`, data);
+      //   }
+      // };
+      ws.onmessage = (data) => {
+        //console.log('[WebSocket 收到回傳資料]', data);
+        const msg = normalizeMessage(data);
+        if(msg){
+          wsHandler[label].handleMessage(msg);
+        }
+        let len = data.length;
+        if(len > 1){
+          const cmd = data[data.length - 1];
+          if (cmd && cmd.toLowerCase() === 'auth') {
+            const state = data[0];
+            if (state === 'OK') {
+              //console.log('驗證通過');
+              agentName = data[1];
+            } else {
+              const errorCode = data[1];
+              if (errorCode === '001' || errorCode === '002') {
+                //console.log('驗證失敗');
+              }
+            }
+          }else if(cmd === 'update'){
+            handleWebSocketMessageCSV(data, label);
+          }
+        }else{
+          handleWebSocketMessage(data, label);
+      
+        }
+      };
+      ws.onclose = () => {
+        console.warn(`[${label}] WebSocket 關閉，嘗試重連`);
+        setTimeout(() => createWebSocket(callerId, label), 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error(`[${label}] WebSocket 錯誤:`, err);
+      };
+
+      return ws;
+    }
+
+    function wsSendLogin(ws, username, password) {
+      if (!ws) return;
+      //const msg = `${username},AUTH,${password}`;
+      const msg = `{"action": "login","vendor_id": "tawe","caller_id": "${username}","password":"${password}","uuid": ""}`;  
+      ws.send(msg);
+    }
+
+    async function sendGetNum(ws, callerId, label, itemID) {
+      let expiryTime = "";
+      let signature = "";
+      if(webGetNumCheck[label] === true){
+        const POLICY =  {
+          refreshInterval: 0,
+          TTL: 1440,
+          dailyRefresh: '00:00'
+        };
+        const refreshInterval = POLICY?.refreshInterval || null;
+        const TTL = POLICY?.TTL || null;
+        const dailyRefresh = POLICY?.dailyRefresh || null;            
+        //const timestamp = Date.now() + TTL * 60 * 1000;   //2分鐘QRCode存活時間
+        // 1) 先做「已編碼」版本（很重要：空白會是 %20，不會是 +）
+        const now = new Date(Date.now());
+        const { expiryMs, nextRefreshMs } = computePolicyTimes(now, POLICY);
+
+        // ✅ 有 POLICY 才需要 expiry_time + 倒數更新
+        const needExpiry = !!(POLICY && expiryMs && nextRefreshMs);
+        
+        //console.log(expiryMs);
+
+        //產生sign.
+        const raw = {
+        action: "user_get_num",
+        vendor_id: "tawe",
+        caller_id: callerId,
+        user_id: userID,
+        get_num_item_id: itemID,
+        for_customer: true,
+        //expiry_time: String(expiryMs) || ""
+        expiry_time: '1791129599000'
+        };
+        // 這份 encoded 才是「要拿去簽、也要拿去輸出」的最終版本
+        const encoded = {};
+        Object.keys(raw).forEach(k => {
+        encoded[k] = encodeURIComponent(raw[k]);
+        });
+        //console.warn('encoded:'+JSON.stringify(encoded));
+        // 同時支援兩種：window._InternalSecurityModule 或全域 _InternalSecurityModule
+        const Sec =
+        (window._InternalSecurityModule && typeof window._InternalSecurityModule.generate === "function")
+            ? window._InternalSecurityModule
+            : (typeof _InternalSecurityModule !== "undefined" && typeof _InternalSecurityModule.generate === "function")
+            ? _InternalSecurityModule
+            : null;
+
+        if (!Sec) {
+        return;
+        }
+
+        const sign = await Sec.generate(encoded);        
+        expiryTime = expiryMs;
+        signature = sign;
+      }
+      const msg = {
+        action: "user_get_num",
+        vendor_id: "tawe",
+        caller_id: callerId,
+        user_id: userID,
+        get_num_item_id: itemID,
+        for_customer:true,
+        get_from_web: true,
+        expiry_time: expiryTime,
+        sign: signature,
+        uuid: ""
+      };
+      ws.send(JSON.stringify(msg));
+      //console.log(`[${label}] 發送 user_get_num 請求`);
+    }
+
+    function handleWebSocketMessageCSV(data, label) {
+      const cmd = data[data.length-1];
+      if((data[0]==='OK')&&(cmd === "update")){
+        updateNumUI(data[2],label);
+      }
+    }
+    function handleWebSocketMessage(data, label) {
+      if (data.result === 'OK' && data.action === 'login') {
+        initUI(data,label);
+      }  
+      
+      if(data.result === 'OK' && data.action === 'user_get_num'){
+        if(data.user_id === userID){
+          updateUI(data, label);
+        }else{
+          updateUserGetNumData(data,label);
+        }
+        let btn = document.getElementById(`btn_${label}`);
+        if(btn.locked === true){
+          btn.locked = false;
+        }
+      }
+      if(data.result && data.result !== 'OK'){
+        //丟錯誤訊息.
+        let errCode = data.result.split(/[,:]/);
+        let codeNum = "";
+        if(errCode[0] ==='Fail'){
+          codeNum = errCode[1].trim();
+        }else{
+          codeNum = errCode[0].trim();
+        }
+        if((codeNum ==='003') && ((data.action === 'get_num_info')||(obj.action === 'get_num_switch') || (obj.action === 'get_num_status'))){
+          console.log('action:'+data.action,' errcode:',data.result);
+        }else if(data.action === 'user_get_num'){
+          let btn = document.getElementById(`btn_${label}`);
+          let bClickedAddButton = btn.locked;
+          btn.locked = false;
+          if(codeNum === '091'){
+            // 停止取號
+            if(bClickedAddButton === true){
+              let errorMsg = '停止取號 ';
+              popMsg(label,errorMsg);                                
+            }
+            //bClickedAddButton = false;                                   
+          }else if(codeNum ==='092'){
+            // 已達取號上限
+            if(bClickedAddButton === true){
+              let max = "";
+              let errorMsg = '已達取號上限 ';
+              if(initData[label].support_set_params.get_num_max !== undefined){
+                  max = initData[label].support_set_params.get_num_max;
+                  errorMsg= errorMsg+max;
+              }
+              
+              popMsg(label,errorMsg);                                
+            }
+            //bClickedAddButton = false;    
+          }else if(codeNum ==='093'){
+            if(bClickedAddButton === true){
+              let max = "";
+              let errorMsg = '已失效(已過期)';
+              if(initData[label].support_set_params.get_num_max !== undefined){
+                  max = initData[label].support_set_params.get_num_max;
+                  errorMsg= errorMsg+max;
+              }
+              popMsg(label,errorMsg);                                
+            }
+          }else if(codeNum ==='094') {
+            if(bClickedAddButton === true){
+              let max = "";
+              let errorMsg = '簽章錯誤..';
+              if(initData[label].support_set_params.get_num_max !== undefined){
+                  max = initData[label].support_set_params.get_num_max;
+                  errorMsg= errorMsg+max;
+              }
+              popMsg(label,errorMsg);                                
+            }
+          }
+        }
+      }
+
+      if(data.action === 'get_num_status'){
+        if(data.switch === 'on' ){
+          initData[label].support_get_num = true;
+        }
+        if(data.switch === 'off' ){
+          initData[label].support_get_num = false;
+        }
+      }
+      if(data.action === 'get_num_switch'){
+        if(data.switch === 'on' || (data.switch === 'off')){
+          initData[label].get_num_switch = data.switch;
+        }
+      }
+      if(data.result === 'OK' && data.action === 'remove_number'){
+        if(data.remove_num){
+          //todo.需補上重新計算等候人數.
+          reCntWaitting(label,data.remove_num,'removed');
+        }
+      }  
+      if(data.action === 'web_cancel_get_num'){
+        //取消取號(web使用者).
+        if(data.cancel_num){
+          //todo.需補上重新計算等候人數.
+          reCntWaitting(label,data.cancel_num,'removed');
+        }
+      }   
+      
+      if(data.action === 'cancel_get_num'){
+        //取消取號(Line使用者).
+        if(data.cancel_num){
+          //todo.需補上重新計算等候人數.
+          reCntWaitting(label,data.cancel_num,'removed');
+        }
+      }
+      if(data.action === 'new_get_num'){
+        //取號(Line使用者).
+        if(data.curr_num){
+          let objItem={
+            num: data.curr_num,
+            cu: null,
+            state: 'waiting'
+          };          
+          //todo.需補上重新計算等候人數.
+          reCntWaitting(label,data.curr_num,'waiting');
+        }
+      }
+
+    }
+
+    // function countWaiting(data, getnum){
+    //   let cnt = 0;
+    //   for(const key in data){
+    //       let obj = data[key];
+    //       if(obj.state === "waiting"){
+    //           cnt ++;
+    //       }
+    //       if(Number(key) ===getnum){
+    //         break;
+    //       }
+    //   }
+    //   return cnt;
+    // }
+    function countWaiting(itemgroup, usergetnum){
+      let cnt =0;
+      for(let i=0;i<itemgroup.length; i++){
+        let obj = itemgroup[i];
+        if(obj.status === itemStatus.NORMAL){
+          cnt ++;
+        }
+        if((obj.num === usergetnum.getnum) && (obj.turn === usergetnum.turn)){
+          break;  
+        }
+      }
+      return cnt;
+    }
+
+
+    function initUI(data, label){
+      //console.log(data);
+      initData[label]=data;
+      // if(label === 'A'){
+      //   initDataA = data;
+      // }else if(label === 'B'){
+      //   initDataB = data;
+      // }
+      let prefixMap=null;
+      let prefixFlag = false;
+      if((data.num_prefix!==null)&&(data.num_prefix !== "") &&
+      (data.prefix_alias!==null)&&(data.prefix_alias !== "")){
+        prefixMap = {};
+        for(let i=0;i<data.num_prefix.length; i++){
+          let key = (data.num_prefix[i]).toString();
+          prefixMap[key] = data.prefix_alias[i];
+        }
+        prefixFlag = true;
+      }      
+      prefixData[label]= new Object({
+        prefixFlag: prefixFlag,
+        prefixMap: prefixMap
+      });
+
+      const caller_name = document.getElementById(`caller_name_${label}`);
+      const caller_name_s = document.getElementById(`caller_name_s_${label}`);
+      const curr_num = document.getElementById(`curr_num_${label}`);
+      const waiting = document.getElementById(`waiting_${label}`);
+      const btnGetNum = document.getElementById(`btn_${label}`);
+      const get_num = document.getElementById(`get_num_${label}`);
+      //const get_num = document.getElementById(`btn_${label}`);
+
+      let storename = data.caller_name || "";
+      const nowCurrNum = Number(data.curr_num || 0);
+      const nowLastGetNum = Number(data.last_get_num || 0);
+      let nowGetNum = 0;
+      let callername = null;
+      if(data.caller_name.indexOf(';;') !== -1){
+          let str2=data.caller_name.split(';;');
+          storename = str2[0];
+          callername = str2[1];
+      }         
+      if(callername !== null){
+        caller_name.textContent = storename+' ['+callername+']';  
+      }else{
+        caller_name.textContent = storename;
+        // 找到第一個空格的位置
+        let firstSpaceIndex = storename.indexOf(' ');
+        if (firstSpaceIndex !== -1) {
+          // 切出第一個空格前的內容
+          let mTitle_cn = storename.slice(0, firstSpaceIndex).trim(); 
+          
+          // 切出第一個空格後「剩下全拿」的內容
+          let mTitle_en = storename.slice(firstSpaceIndex + 1).trim(); 
+          
+          //console.log('中文:', mTitle_cn); // '飾品'
+          //console.log('英文:', mTitle_en); // 'Fashion Acc.'
+          caller_name.textContent = mTitle_cn;
+          caller_name_s.textContent = mTitle_en;          
+        }  
+      }
+      const caller_num_limit = initData[label].caller_num_limit;
+      //curr_num.textContent = `${label}`+nowCurrNum.toString();
+      curr_num.textContent = prefixNumberString(nowCurrNum,caller_num_limit,prefixData[label].prefixMap,prefixData[label].prefixFlag);    
+
+
+      
+
+      btnGetNum.disabled = false;
+      if(data.support_get_num === false){
+        btnGetNum.disabled = true;
+      }
+
+      // (true/false) 網頁取號，是否需檢查 sign
+      if(data.web_get_num_check !== undefined && data.web_get_num_check !== ""){
+        webGetNumCheck[label]= data.web_get_num_check;
+      }else{
+        webGetNumCheck[label]= false;
+      }      
+      // if(data.get_num_switch === "off"){
+      //   btnGetNum.disabled = true;
+      // }
+      if((userData[`clientId${label}`]) && (userData[`clientId${label}`].getnum === null)){
+        btnGetNum.textContent = '取號';
+        get_num.textContent="";
+        if(btnGetNum.classList.contains('disabled')){
+          btnGetNum.classList.remove("disabled");
+        }
+        if(!btnGetNum.classList.contains('available')){
+          btnGetNum.classList.add("available");
+        }        
+      }
+      //console.log('userData[',`clientId${label}`,']', ' getnum:',userData[`clientId${label}`].getnum,'timestamp:',userData[`clientId${label}`].timestamp);
+      if((userData[`clientId${label}`]) && (userData[`clientId${label}`].getnum!== null)){
+        let key = userData[`clientId${label}`].getnum.toString();  
+        let userTimestamp = userData[`clientId${label}`].timestamp;
+        if(data.get_num_item_data === undefined || data.get_num_item_data.length <=0 || data.get_num_item_data === null){
+          //console.log('1');
+          userData[`clientId${label}`].getnum= null;
+          userData[`clientId${label}`].timestamp = null;
+          userData[`clientId${label}`].turn= null;
+          userData[`clientId${label}`].itemId = null;
+        }
+        if(userData[`clientId${label}`].getnum!==null){
+          // if(userData[`clientId${label}`].getnum > data.last_get_num){
+          //   //玩家手中的號碼大于最後取號.(可能重置過.).
+          //   //console.log('2');
+          //   userData[`clientId${label}`].getnum= null;
+          //   userData[`clientId${label}`].timestamp = null;
+          //   userData[`clientId${label}`].turn= null;
+          //   userData[`clientId${label}`].itemId = null;
+          // }else{
+          let key = userData[`clientId${label}`].getnum.toString();  
+          let userState = data.get_num_item_data[key];
+          if(userState){
+            let t = userState.get_num_time;
+            let tt = userData[`clientId${label}`].timestamp;
+            if(t !== tt){
+              //時間不一致.(可能重置過)
+              //console.log('3');
+              userData[`clientId${label}`].getnum= null;
+              userData[`clientId${label}`].timestamp = null;
+              userData[`clientId${label}`].turn= null;
+              userData[`clientId${label}`].itemId = null;
+            }else{
+              if(userState.state !== 'waiting'){
+                userData[`clientId${label}`].getnum= null;
+                userData[`clientId${label}`].timestamp = null;
+                userData[`clientId${label}`].turn= null;
+                userData[`clientId${label}`].itemId = null;
+              }
+            }
+          }else{
+            //號碼不存在, 可能被叫號移除了.
+              userData[`clientId${label}`].getnum= null;
+              userData[`clientId${label}`].timestamp = null;
+              userData[`clientId${label}`].turn= null;
+              userData[`clientId${label}`].itemId = null;
+          }
+          // }
+        }
+      }
+      //console.log('userData[',`clientId${label}`,']', ' getnum:',userData[`clientId${label}`].getnum,'timestamp:',userData[`clientId${label}`].timestamp);
+      if((userData[`clientId${label}`].getnum === null) && (userData[`clientId${label}`].timestamp === null)){
+        //console.log('4');
+        try {
+          const db = localforage.createInstance({
+            name: 'callMe2',
+            storeName: 'data'
+          });
+          const callerId = clientIds[label.charCodeAt(0)-65];
+          db.removeItem(callerId);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      if((userData[`clientId${label}`]) && (userData[`clientId${label}`].getnum!== null)){
+        //get_num顯示需修改.
+        get_num.textContent = prefixNumberString(userData[`clientId${label}`].getnum,caller_num_limit,prefixData[label].prefixMap,prefixData[label].prefixFlag);    
+
+        /* let wless = userData[`clientId${label}`].getnum - nowCurrNum;
+        if(wless <= 0){
+          wless = 0;
+        } */
+        
+        //let cnt = countWaiting(data.get_num_item_data, userData[`clientId${label}`].getnum);
+        let itemgroup = wsHandler[label].store.get('data.itemGroup');
+        let cnt = countWaiting(itemgroup,userData[`clientId${label}`]);
+        let key = userData[`clientId${label}`].getnum.toString();  
+        let userState = data.get_num_item_data[key];
+        if(userState.state === 'waiting'){
+          waiting.textContent = cnt;
+          //console.log('cnt:'+cnt);
+        }else{
+          waiting.textContent = 0;
+          //console.log('0');
+        }
+        
+        /*if(wless > 0){*/
+        if(userState.state === 'waiting'){
+          btnGetNum.textContent = '已取號';
+          btnGetNum.disabled = true;
+          if(btnGetNum.classList.contains('available')){
+            btnGetNum.classList.remove("available");
+          }          
+          if(!btnGetNum.classList.contains('disabled')){
+            btnGetNum.classList.add('disabled');
+          }
+        }
+      }
+      
+      //debugTxt.textContent = new Date().toLocaleTimeString();
+    }
+
+    function updateUI(data, label) {
+      const btn = document.getElementById(`btn_${label}`);
+      const displayNow = document.getElementById(`get_num_${label}`);
+      const displayLess = document.getElementById(`waiting_${label}`);
+      //const debugTxt = document.getElementById(`debugTxt_${label}`);
+
+      const nowUserGetNumValue = Number(data.get_num || 0);
+      // const waitTimeAvg = Number(data.wait_time_avg || 0);
+      // const waitMin = Math.max(1, Math.floor(waitTimeAvg / 60));
+
+      btn.textContent = "已取號";
+      if(btn.classList.contains('available')){
+        btn.classList.remove("available");
+      }          
+      if(!btn.classList.contains('disabled')){
+        btn.classList.add('disabled');
+      }
+      //btn.style.backgroundColor = '#DFDFDF';
+      btn.disabled =true;
+      const caller_num_limit = initData[label].caller_num_limit;
+      displayNow.textContent = prefixNumberString(nowUserGetNumValue,caller_num_limit,prefixData[label].prefixMap,prefixData[label].prefixFlag);    
+
+
+      
+      // 更新 userData
+      //const nowUserGetNumTime = new Date();
+      const nowUserGetNumTime = data.get_num_time;
+      userData[`clientId${label}`].getnum = nowUserGetNumValue;
+      userData[`clientId${label}`].timestamp = nowUserGetNumTime;
+      userData[`clientId${label}`].turn = data.turn;
+      userData[`clientId${label}`].itemId = data.get_num_item_id;
+
+      try {
+        const db = localforage.createInstance({
+          name: 'callMe2',
+          storeName: 'data'
+        });
+        db.setItem('UserID',userID);
+        let getNumData = {
+            timestamp: nowUserGetNumTime,
+            getnum:nowUserGetNumValue,
+            turn:data.turn,
+            itemId: data.get_num_item_id
+        };
+        const callerId = clientIds[label.charCodeAt(0)-65];
+        db.setItem(callerId, getNumData);
+      } catch (error) {
+        console.error(error);
+      }
+
+      let getnumObj={
+        called_time: '', 
+        for_customer: data.for_customer, 
+        get_num_item_id: data.get_num_item_id,
+        state: 'waiting'
+      };
+      initData[label].get_num_item_data[data.get_num] = getnumObj;
+
+      // //console.log(JSON.stringify(initData[label].get_num_item_data));
+      // let cnt = countWaiting(initData[label].get_num_item_data, data.get_num);
+
+      let itemgroup = wsHandler[label].store.get('data.itemGroup');
+      let cnt = countWaiting(itemgroup,userData[`clientId${label}`]);
+
+      //console.log(cnt);
+      displayLess.textContent = cnt;
+      //startEvent(nowUserGetNumTime);
+      // displayLess.textContent = waitMin;
+      // displayNow.style.display = "inline-block";
+      //debugTxt.textContent = new Date().toLocaleTimeString();
+    }
+    function updateUserGetNumData(data,label){
+      
+      //console.log('data'+data);
+      let getnumObj={
+        called_time: '', 
+        for_customer: data.for_customer, 
+        get_num_item_id: data.get_num_item_id,
+        state: 'waiting'
+      };
+      initData[label].get_num_item_data[data.get_num] = getnumObj;
+    }
+    // function reCntWaitting(label, num, state){
+      
+    //   let obj = initData[label].get_num_item_data[num];
+    //   let getnumObj={
+    //     called_time: '', 
+    //     for_customer: true, 
+    //     get_num_item_id: '0',
+    //     state: ''
+    //   };
+    //   if(!obj){
+    //     getnumObj.state = state;
+    //   }else{
+    //     getnumObj.called_time = obj.called_time;
+    //     getnumObj.for_customer = obj.for_customer;
+    //     getnumObj.get_num_item_id = obj.get_num_item_id;
+    //     if(state === 'waiting'){
+    //       //getnumObj.called_time = new Date().getTime();
+    //       getnumObj.called_time = '';
+    //     }
+    //     getnumObj.state = state;
+    //   }
+    //   initData[label].get_num_item_data[num] = getnumObj;
+    //   let usergetnum = userData[`clientId${label}`].getnum;
+
+    //   if((usergetnum!== null) && (initData[label].get_num_item_data[usergetnum].state === "waiting")){
+    //     let cnt = countWaiting(initData[label].get_num_item_data, usergetnum);
+    //     // const displayNow = document.getElementById(`get_num_${label}`);
+    //     const displayLess = document.getElementById(`waiting_${label}`);
+    //     displayLess.textContent = cnt;
+    //   }
+    // }
+    function reCntWaitting(label, num, state){
+      let obj = initData[label].get_num_item_data[num];
+      let getnumObj={
+        called_time: '', 
+        for_customer: true, 
+        get_num_item_id: '0',
+        state: ''
+      };
+      if(!obj){
+        getnumObj.state = state;
+      }else{
+        getnumObj.called_time = obj.called_time;
+        getnumObj.for_customer = obj.for_customer;
+        getnumObj.get_num_item_id = obj.get_num_item_id;
+        if(state === 'waiting'){
+          //getnumObj.called_time = new Date().getTime();
+          getnumObj.called_time = '';
+        }
+        getnumObj.state = state;
+      }
+      initData[label].get_num_item_data[num] = getnumObj;
+
+
+      let itemgroup = wsHandler[label].store.get('data.itemGroup');
+      let usergetnum = userData[`clientId${label}`];  
+      if(usergetnum && usergetnum.getnum !== null){
+        let cnt = countWaiting(itemgroup, usergetnum);
+        const displayLess = document.getElementById(`waiting_${label}`);
+        displayLess.textContent = cnt;
+      }
+    }
+
+    //------------------------------------
+    //server action='update'.
+    //------------------------------------
+    function resetData(label){
+      initData[label].curr_num = 0;
+      initData[label].call_num = 0;
+      initData[label].last_get_num = 0;
+      initData[label].get_num_item_data = {};
+      initData[label].get_num_item_queue = [""];
+
+      userData[`clientId${label}`].getnum = "";
+      userData[`clientId${label}`].timestamp = "";
+      userData[`clientId${label}`].turn = "";
+      userData[`clientId${label}`].itemId = "";
+
+      try {
+        const db = localforage.createInstance({
+          name: 'callMe2',
+          storeName: 'data'
+        });
+        const callerId = clientIds[label.charCodeAt(0)-65];
+        db.removeItem(callerId);
+      } catch (error) {
+        console.error(error);
+      }
+      const curr_num = document.getElementById(`curr_num_${label}`);
+      const waiting = document.getElementById(`waiting_${label}`);
+      let btn = document.getElementById(`btn_${label}`);
+      const get_num = document.getElementById(`get_num_${label}`);
+      const caller_num_limit = initData[label].caller_num_limit;
+      curr_num.textContent = prefixNumberString(0,caller_num_limit,prefixData[label].prefixMap,prefixData[label].prefixFlag);    
+      waiting.textContent = 0;
+      get_num.textContent = "";
+
+      btn.disabled = false;
+      btn.textContent = '取號';
+      if(btn.classList.contains('disabled')){
+        btn.classList.remove("disabled");
+      }
+      if(!btn.classList.contains('available')){
+        btn.classList.add("available");
+      }      
+    }
+    function updateNumUI(num, label){
+      const curr_num = document.getElementById(`curr_num_${label}`);
+      const waiting = document.getElementById(`waiting_${label}`);
+      const nowCurrNum = Number(num || 0);
+      //curr_num.textContent = `${label}`+nowCurrNum;
+      const caller_num_limit = initData[label].caller_num_limit;
+      curr_num.textContent = prefixNumberString(nowCurrNum,caller_num_limit,prefixData[label].prefixMap,prefixData[label].prefixFlag);    
+
+      if(nowCurrNum === 0){
+        //歸零.
+        resetData(label);
+      }else{
+        initData[label].curr_num = nowCurrNum;
+
+        let currdata = initData[label].get_num_item_data[num];
+        let getnumObj={
+          called_time: new Date().getTime(), 
+          for_customer: true, 
+          get_num_item_id: '0',
+          state: 'called'
+        };
+        if(currdata){
+          getnumObj.for_customer = currdata.for_customer;
+          getnumObj.get_num_item_id = currdata.get_num_item_id;
+        }
+        initData[label].get_num_item_data[num]=getnumObj;
+
+        //console.log(`clientId${label}`+ ' '+ userData[`clientId${label}`].getnum);
+        if(userData[`clientId${label}`].getnum !== null){
+          const displayLess = document.getElementById(`waiting_${label}`);
+          /* let less = userData[`clientId${label}`].getnum - nowCurrNum;
+          if(less < 0){
+            less = 0;
+          } */
+          //let less = countWaiting(initData[label].get_num_item_data, userData[`clientId${label}`].getnum);
+
+          //console.log(label, userData[`clientId${label}`].getnum);
+          let itemgroup = wsHandler[label].store.get('data.itemGroup');
+          let less = countWaiting(itemgroup,userData[`clientId${label}`]);
+          let numIdx = itemgroup.findIndex(item=>item.num === userData[`clientId${label}`].getnum);
+          let breget = false;
+          if(numIdx === -1){
+            //找不到, 可能已經移除.
+            breget = true;
+          }else {
+            let obj = itemgroup[numIdx];
+            if((obj.status !== itemStatus.NORMAL) && (obj.turn === userData[`clientId${label}`].turn)){
+              //已叫號.
+              breget = true;
+            }
+          }
+          if(breget === false){
+            waiting.textContent = less;
+          }else{
+            waiting.textContent = 0;
+            let btn = document.getElementById(`btn_${label}`);
+            if(btn.disabled === true){
+              btn.disabled = false;
+              btn.textContent = '取號';
+              if(btn.classList.contains('disabled')){
+                btn.classList.remove("disabled");
+              }
+              if(!btn.classList.contains('available')){
+                btn.classList.add("available");
+              }
+            }
+          }
+
+          //let key = userData[`clientId${label}`].getnum.toString();  
+          //let userState = initData[label].get_num_item_data[key];
+          // if(userState.state === 'waiting'){
+          //   waiting.textContent = less;
+          // }else{
+          //   waiting.textContent = 0;
+          //   let btn = document.getElementById(`btn_${label}`);
+          //   if(btn.disabled === true){
+          //     btn.disabled = false;
+          //     btn.textContent = '取號';
+          //     if(btn.classList.contains('disabled')){
+          //       btn.classList.remove("disabled");
+          //     }
+          //     if(!btn.classList.contains('available')){
+          //       btn.classList.add("available");
+          //     }
+          //   }
+          // }
+        }
+      }
+    }
+
+    function generateUserId() {
+      return 'xxxxxxxxyxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0;
+        return r.toString(16);
+      }).toUpperCase();
+    }
+    function getNumber(btn, label){
+      if(btn.disabled) return;
+      if(initData[label]?.support_get_num === false || initData[label]?.get_num_switch === 'off'){
+        popMsg(label);
+        return;
+      }
+      if(btn.locked === true){
+        return;
+      }
+      const ws = wsList[label];
+      const callerId = clientIds[label.charCodeAt(0) - 65];
+      const get_num = document.getElementById(`get_num_${label}`);
+      btn.locked = true;
+      get_num.textContent="";
+      
+      if(!initData[label].get_num_item_type || initData[label].get_num_item_type === ""){
+        //無分組.
+        sendGetNum(ws, callerId, label, "");  
+      }else{
+        //有分組, 固定一組.
+        sendGetNum(ws, callerId, label, "0");
+      }
+    }
+    // function sentMessageUserGetNum(ws, clientId,itemId){
+    //     //console.log('sentMessageUserGetNum');
+    //     if(clientId!==null){
+    //         if (ws && ws.readyState === WebSocket.OPEN) {
+    //             let message = `{"action": "user_get_num","vendor_id": "tawe","caller_id": "${clientId}","user_id": "${userID}","get_num_item_id":"${itemId}","for_customer":true, "uuid": ""}`;  
+    //             //console.log('sentMessageUserGetNum:'+message);
+    //             ws.send(message);
+    //         }else{
+    //             //console.log('已斷線');
+    //         }
+    //     }
+    // }
+
+    //-----------------------------------------------------------------------
+    // 啟動事件：儲存時間
+    // function startEvent(now) {
+    //     //console.log("事件啟動時間：" + now.toLocaleTimeString());
+    //     checkIfPassed10Minutes(now);
+    // }
+    // // 檢查是否已經超過10分鐘
+    // function checkIfPassed10Minutes(eventTime) {
+    //     const interval = setInterval(() => {
+    //     const now = new Date();
+    //     const elapsed = now - eventTime;
+
+    //     if (elapsed >= defTime) {            
+    //         clearInterval(interval);
+    //         proceedToNextStep();
+    //     }
+    //     }, 10000); // 每10秒檢查一次
+    // }
+    // // 超過10分鐘後要執行的動作
+    // function proceedToNextStep() {
+    //     //console.log("已超過10分鐘，執行下一步！");
+    //     resetButtonMode();
+    // }
+    // function resetButtonMode(){
+    //     const btnGetNumA = document.getElementById(`btn_A`);
+    //     const btnGetNumB = document.getElementById(`btn_B`);
+    //     const btnGetNumC = document.getElementById(`btn_C`);
+    //     if(btnGetNumA.textContent !== '取號'){
+    //       if(btnGetNumA.classList.contains('disabled')){
+    //         btnGetNumA.disabled = false;
+    //         btnGetNumA.classList.remove("disabled");
+    //         btnGetNumA.classList.add("active");
+    //         btnGetNumC.textContent = '取號';
+    //       }
+    //     }
+    //     if(btnGetNumB.textContent !== '取號'){
+    //       if(btnGetNumB.classList.contains('disabled')){
+    //         btnGetNumB.disabled = false;
+    //         btnGetNumB.classList.remove("disabled");
+    //         btnGetNumB.classList.add("active");
+    //         btnGetNumC.textContent = '取號';
+    //       }
+    //     }
+    //     if(btnGetNumC.textContent !== '取號'){
+    //       if(btnGetNumC.classList.contains('disabled')){
+    //         btnGetNumC.disabled = false;
+    //         btnGetNumC.classList.remove("disabled");
+    //         btnGetNumC.classList.add("active");
+    //         btnGetNumC.textContent = '取號';
+    //       }
+    //     }
+    // }
+    function popMsg(label, errorMsg=""){
+      let modalbox = document.getElementById('modalOverlay');
+      let mTitle = document.getElementById('mTitle');
+      let mTitle_s = document.getElementById('mTitle_s');
+      let mErrMsg = document.getElementById('errorMsg');
+      let storename = initData[label].caller_name || "";
+      let callername = null;
+      if(initData[label].caller_name.indexOf(';;') !== -1){
+          let str2=initData[label].caller_name.split(';;');
+          storename = str2[0];
+          callername = str2[1];
+      }    
+      mTitle_s.textContent ="";     
+      if(callername !== null){
+        mTitle.textContent = storename;
+        mTitle_s.textContent = '['+callername+']';
+      }else{
+        mTitle.textContent = storename;
+
+        // 找到第一個空格的位置
+        let firstSpaceIndex = storename.indexOf(' ');
+        if (firstSpaceIndex !== -1) {
+          // 切出第一個空格前的內容
+          let mTitle_cn = storename.slice(0, firstSpaceIndex).trim(); 
+          
+          // 切出第一個空格後「剩下全拿」的內容
+          let mTitle_en = storename.slice(firstSpaceIndex + 1).trim(); 
+          
+          //console.log('中文:', mTitle_cn); // '飾品'
+          //console.log('英文:', mTitle_en); // 'Fashion Acc.'
+          mTitle.textContent = mTitle_cn;
+          mTitle_s.textContent = mTitle_en;          
+        }        
+      }
+
+      if(!modalbox.classList.contains('active')){
+        modalbox.classList.add('active');
+      }
+      if(errorMsg !== ""){
+        mErrMsg.textContent = errorMsg;
+      }else{
+        mErrMsg.textContent = '因人潮眾多 暫停取號\n請稍後重試';
+      }
+    }
+    function closeModal(){
+      let modalbox = document.getElementById('modalOverlay');
+      if(modalbox.classList.contains('active')){
+        modalbox.classList.remove('active');
+      }
+    }
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            window.location.reload();
+        }
+    });
+    window.addEventListener("resize", () => {
+      modifyMiddleContainer();
+    });
+    function modifyMiddleContainer(){
+      let middle = document.getElementById('sectionContainer');
+      if(middle){
+        if(clientIds.length>=3){
+          if(window.innerWidth > window.innerHeight){
+            if(!middle.classList.contains('landscapeScreenOverlay')){
+              middle.classList.add('landscapeScreenOverlay');
+            }
+          }else{
+            if(middle.classList.contains('landscapeScreenOverlay')){
+              middle.classList.remove('landscapeScreenOverlay');
+            }
+          }
+        }
+      }
+    }    
+  </script>
+</body>
+</html>
